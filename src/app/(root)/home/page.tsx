@@ -1,6 +1,6 @@
 "use client";
 
-import { useContext } from "react";
+import { useContext, useState } from "react";
 import Navigation from "@/components/Navigation";
 import Image from "next/image";
 import ProjectExplore from "@/components/ProjectExplore";
@@ -12,6 +12,7 @@ import { useWallet } from "@/context/WalletContext";
 import { UserContext } from "@/context/UserContext";
 import { Bid } from "@/types/Bid";
 import Link from "next/link";
+import { Project } from "@/types/Project";
 
 const Home = () => {
   const { publicNotifications, privateNotifications } = useNotifications();
@@ -20,6 +21,7 @@ const Home = () => {
   const { ratings } = useRatings();
   const { wallet } = useWallet();
   const { userProfile } = useContext(UserContext) || {};
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
 
   // حساب عدد العروض بحسب الحالة إذا كانت موجودة
   const pendingBids =
@@ -67,7 +69,9 @@ const Home = () => {
         {/* الرصيد */}
         <div className="bg-white lg:w-[65%] md:w-[55%] w-[90%]  mx-5 rounded-md shadow-md flex flex-1 justify-around my-5 md:my-0 lg:my-0">
           <div className="flex-flex-col text-center my-auto">
-            <h1 className="text-gray-500 text-2xl mb-3">{wallet?.balance || 0}</h1>
+            <h1 className="text-gray-500 text-2xl mb-3">
+              {wallet?.balance || 0}
+            </h1>
             <p className="text-lamagreen text-lg ">رصيد في الحساب</p>
           </div>
           <div className="flex-flex-col text-center my-auto">
@@ -107,7 +111,7 @@ const Home = () => {
           </div>
           {/* مشاريع */}
           <div className="shadow-md bg-white mx-5">
-            <ProjectExplore />
+            <ProjectExplore onProjectSelect={setSelectedProject} />
             <button className="w-[70%] md:w-[50%] lg:w-[50%] items-end bg-lamagreen text-center mx-[25%] my-3 rounded-md h-[30px] text-white">
               إظهار المزيد
             </button>
