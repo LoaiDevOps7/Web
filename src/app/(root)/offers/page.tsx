@@ -1,3 +1,5 @@
+"use client";
+
 import ProjectOffers from "@/components/ProjectOffers";
 
 const POffers = () => {
