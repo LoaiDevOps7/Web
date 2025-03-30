@@ -5,10 +5,10 @@ const Navigation = () => {
   return (
     <div className=" flex flex-row-reverse w-full mt-5 mr-20">
       <Image
-        src="/Logo.png"
+        src="/logo.png"
         alt=""
-        width={100}
-        height={100}
+        width={80}
+        height={80}
         className="mr-3 lg:mr-10 md:mr-10"
       />
       <div className="bg-lamagreen w-[80%] lg:w-[40%] md:w-[40%] flex mx-auto rounded-lg flex-row-reverse items-center justify-around text-white text-xl ">

@@ -59,7 +59,7 @@ const Nav = ({ openNav }: Props) => {
     >
       <div className="flex items-center h-full justify-between w-[90%] xl:w-[80%] mx-auto">
         {/* logo */}
-        <Image src="/Logo.png" alt="logo" width={100} height={100} />
+        <Image src="/logo.png" alt="logo" width={100} height={100} />
         {/* <h1 className="text-xl md:text-3xl lg:text-3xl font-bold text-lamagreen">مبدع</h1> */}
         {/* nav */}
         <div className="hidden lg:flex  items-center space-x-10">

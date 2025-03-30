@@ -24,7 +24,7 @@ export default function LogInPage() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4">
       <Image
-        src="/Logo.png"
+        src="/logo.png"
         alt="logo"
         width={150}
         height={100}
