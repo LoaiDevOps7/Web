@@ -11,12 +11,13 @@ export const personalInfoSchema = yup.object({
   description: yup.string(),
   city: yup.string().required("المدينة مطلوبة"),
   country: yup.string().required("الدولة مطلوبة"),
-  dateOfBirth: yup.date().when("$isUpdate", (isUpdate: boolean, schema) => {
-    return isUpdate
-      ? schema.notRequired()
-      : schema
-          .max(maxDate, "يجب أن يكون عمرك 18 سنة على الأقل")
-          .required("تاريخ الميلاد مطلوب");
+  dateOfBirth: yup.date().when("$isUpdate", {
+    is: (isUpdate: boolean) => isUpdate, // تحديد النوع هنا
+    then: (schema) => schema.notRequired(),
+    otherwise: (schema) =>
+      schema
+        .max(maxDate, "يجب أن يكون عمرك 18 سنة على الأقل")
+        .required("تاريخ الميلاد مطلوب"),
   }),
   profileImage: yup
     .mixed()
