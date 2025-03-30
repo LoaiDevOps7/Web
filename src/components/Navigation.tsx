@@ -7,8 +7,8 @@ const Navigation = () => {
       <Image
         src="/Logo.png"
         alt=""
-        width={60}
-        height={60}
+        width={100}
+        height={100}
         className="mr-3 lg:mr-10 md:mr-10"
       />
       <div className="bg-lamagreen w-[80%] lg:w-[40%] md:w-[40%] flex mx-auto rounded-lg flex-row-reverse items-center justify-around text-white text-xl ">
