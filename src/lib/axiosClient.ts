@@ -7,17 +7,14 @@ const axiosClient = axios.create({
   withCredentials: true,
 });
 
-// متغيرات للتحكم في طلبات التجديد
+// متغيرات التحكم
 let isRefreshing = false;
 let failedQueue: any[] = [];
+let redirecting = false; // علامة لمنع التكرار
 
-const processQueue = (error: any, token: string | null = null) => {
+const processQueue = (error: any) => {
   failedQueue.forEach((prom) => {
-    if (error) {
-      prom.reject(error);
-    } else {
-      prom.resolve(token);
-    }
+    error ? prom.reject(error) : prom.resolve();
   });
   failedQueue = [];
 };
@@ -37,8 +34,7 @@ axiosClient.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // تجاهل طلبات refresh-token الفاشلة
-    if (originalRequest.url === "/auth/refresh-token") {
+    if (originalRequest.url.includes("/auth/refresh-token")) {
       return Promise.reject(error);
     }
 
@@ -53,18 +49,15 @@ axiosClient.interceptors.response.use(
             }`;
             return axiosClient(originalRequest);
           })
-          .catch((err) => {
-            return Promise.reject(err);
-          });
+          .catch((err) => Promise.reject(err));
       }
 
       originalRequest._retry = true;
       isRefreshing = true;
 
       try {
-        const response = await axiosClient.post("/auth/refresh-token", {});
-        const newAccessToken = response.data.access_token;
-        const newRefreshToken = response.data.refresh_token;
+        const { data } = await axiosClient.post("/auth/refresh-token");
+        const newAccessToken = data.access_token;
 
         setCookie(null, "authToken", newAccessToken, {
           maxAge: 900000,
@@ -72,30 +65,27 @@ axiosClient.interceptors.response.use(
           secure: process.env.NODE_ENV === "production",
           sameSite: "strict",
         });
-        setCookie(null, "refreshToken", newRefreshToken, {
-          maxAge: 604800000,
-          path: "/",
-          secure: process.env.NODE_ENV === "production",
-          sameSite: "strict",
-        });
 
         useAuthStore.getState().setToken(newAccessToken);
-        processQueue(null, newAccessToken);
+        processQueue(null);
 
         originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
         return axiosClient(originalRequest);
       } catch (refreshError) {
-        processQueue(refreshError, null);
-        destroyCookie(null, "authToken");
-        destroyCookie(null, "refreshToken");
-        useAuthStore.getState().clearToken();
+        processQueue(refreshError);
 
-        // إعادة التوجيه لصفحة تسجيل الدخول مرة واحدة فقط
-        if (
-          typeof window !== "undefined" &&
-          !window.location.pathname.startsWith("/login")
-        ) {
-          window.location.href = "/login?session_expired=1";
+        if (!redirecting && typeof window !== "undefined") {
+          redirecting = true;
+          destroyCookie(null, "authToken");
+          destroyCookie(null, "refreshToken");
+          useAuthStore.getState().clearToken();
+
+          setTimeout(() => {
+            if (!window.location.pathname.startsWith("/login")) {
+              window.location.replace("/login?session_expired=1");
+            }
+            redirecting = false;
+          }, 50);
         }
 
         return Promise.reject(refreshError);
