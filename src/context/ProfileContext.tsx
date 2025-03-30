@@ -14,9 +14,17 @@ interface ProfileContextType {
   profile: Profile | null;
   isLoading: boolean;
   error: any;
+  setProfile: (profile: Profile) => void;
 }
 
-const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
+const defaultContextValue: ProfileContextType = {
+  profile: null,
+  isLoading: true,
+  error: null,
+  setProfile: () => {},
+};
+
+export const ProfileContext = createContext<ProfileContextType>(defaultContextValue);
 
 export const ProfileProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useContext(UserContext) || {};
@@ -44,7 +52,7 @@ export const ProfileProvider = ({ children }: { children: ReactNode }) => {
   }, [user]);
 
   return (
-    <ProfileContext.Provider value={{ profile, isLoading, error }}>
+    <ProfileContext.Provider value={{ profile, isLoading, error, setProfile }}>
       {children}
     </ProfileContext.Provider>
   );

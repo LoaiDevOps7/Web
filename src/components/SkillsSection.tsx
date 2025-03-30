@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useContext, AwaitedReactNode, JSXElementConstructor, Key, ReactElement, ReactNode, ReactPortal } from "react";
+import { useState, useContext } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -16,7 +16,7 @@ import { ProfileContext } from "@/context/ProfileContext";
 import { UserContext } from "@/context/UserContext";
 
 const SkillsSection = () => {
-  const { userProfile, setUserProfile } = useContext(ProfileContext) || {};
+  const { profile, setProfile } = useContext(ProfileContext);
   const [selectedSkill, setSelectedSkill] = useState("");
   const { user } = useContext(UserContext) || {};
 
@@ -24,14 +24,14 @@ const SkillsSection = () => {
     if (!user) return;
     if (!selectedSkill) return;
     // نقوم بتجميع المهارات الجديدة مع الموجودة (يفترض أن userProfile.skills هو مصفوفة من السلاسل النصية)
-    const newSkills = userProfile?.skills
-      ? [...userProfile.skills, selectedSkill]
+    const newSkills = profile?.job?.skills
+      ? [...profile.job.skills, selectedSkill]
       : [selectedSkill];
 
     try {
       // استدعاء API لتحديث الملف الشخصي مع حقل المهارات فقط
       const updatedProfile = await updateKycPersonalInfo(user.sub, { skills: newSkills });
-      setUserProfile(updatedProfile);
+      setProfile(updatedProfile);
       setSelectedSkill("");
     } catch (error) {
       console.error("Failed to update skills", error);
@@ -70,8 +70,8 @@ const SkillsSection = () => {
         </Button>
       </div>
       <div className="mt-4 flex gap-4 flex-wrap text-xs">
-        {userProfile?.skills && userProfile.skills.length > 0 ? (
-          userProfile.skills.map((skill: string, index: number) => (
+        {profile?.job?.skills && profile.job?.skills.length > 0 ? (
+          profile.job?.skills.map((skill: string, index: number) => (
             <Link
               key={index}
               href="/"
