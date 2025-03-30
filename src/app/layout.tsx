@@ -1,34 +1,8 @@
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "sonner";
-import UserProvider from "@/context/UserContext";
-import { ActivityProvider } from "@/context/ActivityContext";
-import { NotificationProvider } from "@/context/NotificationContext";
-import { PortfolioProvider } from "@/context/PortfolioContext";
-import { RatingsProvider } from "@/context/RatingsContext";
-import { ProfileProvider } from "@/context/ProfileContext";
-import { WalletProvider } from "@/context/WalletContext";
-import { ProjectProvider } from "@/context/ProjectContext";
-// import { ChatProvider } from "@/context/ChatContext";
 import { TooltipProvider } from "@/components/ui/tooltip";
-
-const providers = [
-  UserProvider,
-  ProjectProvider,
-  ProfileProvider,
-  ActivityProvider,
-  NotificationProvider,
-  PortfolioProvider,
-  RatingsProvider,
-  WalletProvider,
-  // ChatProvider,
-].reverse();
-
-const CombinedProviders = ({ children }: { children: React.ReactNode }) => {
-  return providers.reduce((acc, Provider) => {
-    return <Provider>{acc}</Provider>;
-  }, children);
-};
+import CombinedProviders from "@/provider/AllProviders";
 
 const inter = Inter({ subsets: ["latin"] });
 
