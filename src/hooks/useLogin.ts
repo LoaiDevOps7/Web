@@ -60,9 +60,8 @@ export const useLogin = () => {
         // حفظ التوكن في الكوكيز
         setCookie(null, "authToken", access_token, {
           maxAge: 900000,
-          path: "/",
-          secure: process.env.NODE_ENV === "production",
-          sameSite: "lax",
+          secure: true,
+          sameSite: "none",
         });
 
         router.push("/user");

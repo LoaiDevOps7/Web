@@ -55,9 +55,8 @@ axiosClient.interceptors.response.use(
         // تحديث التوكن في المتجر والكوكيز
         setCookie(null, "authToken", newAccessToken, {
           maxAge: 900000,
-          path: "/",
-          secure: process.env.NODE_ENV === "production",
-          sameSite: "strict",
+          secure: true,
+          sameSite: "none",
         });
         useAuthStore.getState().setToken(newAccessToken);
 
