@@ -89,7 +89,7 @@ const UserProfile = () => {
       await removeSkillFromPersonalInfo(profile.id, skill);
 
       const newSkills = Array.isArray(profile?.job?.skills)
-        ? profile?.job?.skills.filter((s) => s.name !== skill)
+        ? profile?.job?.skills.filter((s) => s !== skill)
         : [];
       setSkills(newSkills); // تحديث القائمة المعروضة
       window.location.reload();
@@ -293,9 +293,9 @@ const UserProfile = () => {
             profile?.job?.skills.length > 0 ? (
               profile?.job?.skills.map((skill, index) => (
                 <p key={index} className="p-3 rounded-md bg-slate-200 shadow">
-                  {skill.name}
+                  {skill}
                   <button
-                    onClick={() => removeSkill(skill.name)}
+                    onClick={() => removeSkill(skill)}
                     className="ml-2 text-red-600"
                   >
                     ×
