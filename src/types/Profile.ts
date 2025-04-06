@@ -14,7 +14,14 @@ export interface Profile {
   updatedAt: string;
   job: {
     name: string;
-    skills: string[];
+    skills: 
+      {
+        length: number;
+        map(
+          arg0: (skill: any, index: any) => JSX.Element
+        ): import("react").ReactNode;
+        name: string;
+      }
   };
   user: {
     id: number;

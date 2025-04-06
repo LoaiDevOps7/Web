@@ -4,15 +4,17 @@ const nextConfig = {
     return [
       {
         source: "/api/v1/:path*",
-        destination: "http://localhost:5000/api/v1/:path*",
+        destination:
+          "https://backend-production-d8e3.up.railway.app/api/v1/:path*",
       },
     ];
   },
   images: {
     remotePatterns: [
       {
-        protocol: "http",
-        hostname: "localhost",
+        protocol: "https",
+        hostname: "backend-production-d8e3.up.railway.app",
+        port: "",
         pathname: "/src/infrastructure/storage/uploads/**",
       },
     ],

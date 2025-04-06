@@ -27,6 +27,9 @@ const UserProfile = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isLoadingRole, setIsLoadingRole] = useState(false);
 
+
+  console.log(profile)
+
   if (isLoading) return <p>جاري تحميل البيانات...</p>;
   if (error) return <p>حدث خطأ أثناء تحميل الملف الشخصي.</p>;
 
@@ -89,7 +92,7 @@ const UserProfile = () => {
       await removeSkillFromPersonalInfo(profile.id, skill);
 
       const newSkills = Array.isArray(profile?.job?.skills)
-        ? profile?.job?.skills.filter((s) => s !== skill)
+        ? profile?.job?.skills.filter((s) => s.name !== skill)
         : [];
       setSkills(newSkills); // تحديث القائمة المعروضة
       window.location.reload();
@@ -293,9 +296,9 @@ const UserProfile = () => {
             profile?.job?.skills.length > 0 ? (
               profile?.job?.skills.map((skill, index) => (
                 <p key={index} className="p-3 rounded-md bg-slate-200 shadow">
-                  {skill}
+                  {skill.name}
                   <button
-                    onClick={() => removeSkill(skill)}
+                    onClick={() => removeSkill(skill.name)}
                     className="ml-2 text-red-600"
                   >
                     ×
