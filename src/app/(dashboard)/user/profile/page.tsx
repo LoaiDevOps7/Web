@@ -10,25 +10,21 @@ import VerifyAccount from "@/components/VerifyAccount";
 import { Button } from "@/components/ui/button";
 import { usePortfolio } from "@/context/PortfolioContext";
 import { useProfile } from "@/context/ProfileContext";
-import {
-  addSkillsToPersonalInfo,
-  removeSkillFromPersonalInfo,
-} from "@/api/kyc";
 import { useContext, useState } from "react";
-import SkillInput from "@/components/SkillInput";
 import { changeRoleToOwner } from "@/api/user";
 import { User, UserContext } from "@/context/UserContext";
+import SkillsSection from "@/components/SkillsSection";
+import { addSkillsToPersonalInfo } from "@/api/kyc";
+import { useSilentRefresh } from "@/hooks/useRefresh";
 
 const UserProfile = () => {
+  const { refresh } = useSilentRefresh();
   const { profile, isLoading, error } = useProfile();
   const { user, setUser } = useContext(UserContext) || {};
   const { portfolio } = usePortfolio();
   const [skills, setSkills] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoadingRole, setIsLoadingRole] = useState(false);
-
-
-  console.log(profile)
 
   if (isLoading) return <p>جاري تحميل البيانات...</p>;
   if (error) return <p>حدث خطأ أثناء تحميل الملف الشخصي.</p>;
@@ -71,35 +67,23 @@ const UserProfile = () => {
     }
   };
 
-  const handleSkillsChange = (newSkills: string[]) => {
-    setSkills(newSkills);
-  };
+   const handleSkillsChange = (newSkills: string[]) => {
+     setSkills(newSkills);
+   };
 
-  const handleSaveSkills = async () => {
-    setIsSaving(true);
-    try {
-      await addSkillsToPersonalInfo(profile.id, skills);
-      window.location.reload();
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setIsSaving(false);
-    }
-  };
+   const handleSaveSkills = async () => {
+     if (!profile) return;
 
-  const removeSkill = async (skill: string) => {
-    try {
-      await removeSkillFromPersonalInfo(profile.id, skill);
-
-      const newSkills = Array.isArray(profile?.job?.skills)
-        ? profile?.job?.skills.filter((s) => s.name !== skill)
-        : [];
-      setSkills(newSkills); // تحديث القائمة المعروضة
-      window.location.reload();
-    } catch (error) {
-      console.error("فشل في حذف المهارة", error);
-    }
-  };
+     setIsSaving(true);
+     try {
+       await addSkillsToPersonalInfo(profile.id, skills);
+       await refresh();
+     } catch (error) {
+       console.error(error);
+     } finally {
+       setIsSaving(false);
+     }
+   };
 
   return (
     <div className="flex-1 p-4 flex flex-col gap-4 xl:flex-row">
@@ -277,39 +261,16 @@ const UserProfile = () => {
 
       {/* القسم الأيمن */}
       <div className="w-full xl:w-1/3 flex flex-col gap-4">
-        <div className="bg-white p-4 rounded-md shadow">
-          <h1 className="text-xl font-semibold text-center text-lamagreen">
-            المهارات
-          </h1>
-          <div className="flex flex-1 justify-between">
-            <SkillInput onChange={handleSkillsChange} initialSkills={skills} />
-            <Button
-              onClick={handleSaveSkills}
-              disabled={isSaving}
-              className="mt-4 bg-lamagreen text-white py-2 px-4 rounded"
-            >
-              {isSaving ? "جاري الحفظ..." : "حفظ المهارات"}
-            </Button>
-          </div>
-          <div className="mt-4 flex gap-4 flex-wrap text-xs">
-            {Array.isArray(profile?.job?.skills) &&
-            profile?.job?.skills.length > 0 ? (
-              profile?.job?.skills.map((skill, index) => (
-                <p key={index} className="p-3 rounded-md bg-slate-200 shadow">
-                  {skill.name}
-                  <button
-                    onClick={() => removeSkill(skill.name)}
-                    className="ml-2 text-red-600"
-                  >
-                    ×
-                  </button>
-                </p>
-              ))
-            ) : (
-              <p className="text-gray-500">لا توجد مهارات مضافة بعد.</p>
-            )}
-          </div>
-        </div>
+        {/* <div className="flex flex-1 justify-between"> */}
+          <SkillsSection onChange={handleSkillsChange} initialSkills={skills} />
+          <Button
+            onClick={handleSaveSkills}
+            disabled={isSaving}
+            className="mt-4 bg-lamagreen text-white py-2 px-4 rounded"
+          >
+            {isSaving ? "جاري الحفظ..." : "حفظ المهارات"}
+          </Button>
+        {/* </div> */}
         <Performance />
         <UserNotifications />
       </div>

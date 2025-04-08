@@ -1,4 +1,15 @@
-import { JSX } from "react";
+export type Skill = {
+  name: string;
+  length?: number;
+  map?: (arg0: (skill: Skill, index: number) => JSX.Element) => JSX.Element;
+};
+
+export type JobSkills = Skill[];
+
+type Job = {
+  name: string;
+  skills: JobSkills;
+};
 
 export interface Profile {
   id: string;
@@ -12,17 +23,7 @@ export interface Profile {
   country: string;
   createdAt: string;
   updatedAt: string;
-  job: {
-    name: string;
-    skills: 
-      {
-        length: number;
-        map(
-          arg0: (skill: any, index: any) => JSX.Element
-        ): import("react").ReactNode;
-        name: string;
-      }
-  };
+  job: Job;
   user: {
     id: number;
     email: string;
