@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 const publicRoutes = [
-  "/",
   "/sign-in",
   "/sign-up",
   "/forgot-password",
@@ -15,6 +14,10 @@ export function middleware(request: NextRequest) {
   if (pathname.startsWith("/_next") || pathname.includes(".")) {
     return NextResponse.next();
   }
+
+   if (pathname === "/") {
+     return NextResponse.next();
+   }
 
   if (pathname.startsWith("/reset-password/")) {
     return NextResponse.next();

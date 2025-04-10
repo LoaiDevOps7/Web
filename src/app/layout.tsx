@@ -3,6 +3,7 @@ import "./globals.css";
 import { Toaster } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import CombinedProviders from "@/provider/AllProviders";
+import Footer from "@/components/Footer";
 
 // const inter = Inter({ subsets: ["latin"] });
 
@@ -32,6 +33,7 @@ export default function RootLayout({
             />
           </CombinedProviders>
         </TooltipProvider>
+        <Footer />
       </body>
     </html>
   );

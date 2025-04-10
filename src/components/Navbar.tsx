@@ -64,7 +64,7 @@ const Navbar = () => {
           />
           <Indicator />
           {profile?.user?.kycVerification?.verificationStatus ===
-            "verified" && (
+            "approved" && (
             <div className="absolute top-6 right-0 bg-lamagreen rounded-full p-1 z-10">
               <svg
                 xmlns="http://www.w3.org/2000/svg"

@@ -6,7 +6,7 @@ const Indicator = () => {
   const { isOnline } = useActivity();
 
   return (
-    <div style={{ position: "fixed", zIndex: 1000 }}>
+    <div style={{ position: "absolute", zIndex: 1000 }}>
       {isOnline ? (
         <div
           style={{
