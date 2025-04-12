@@ -20,6 +20,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ar" suppressHydrationWarning>
+      <head>
+        <link rel="icon" href="/public/logo.png" />
+      </head>
       <body className="bg-[#f7f8fa]">
         {/* <ThemeProvider> */}
         <TooltipProvider>
