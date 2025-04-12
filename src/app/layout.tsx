@@ -1,11 +1,17 @@
-// import { Inter } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import CombinedProviders from "@/provider/AllProviders";
 import Footer from "@/components/Footer";
+// import { ThemeProvider } from "@/components/ThemeProvider";
 
-// const inter = Inter({ subsets: ["latin"] });
+export const metadata = {
+  title: "مبدع",
+  description: "نحن منصة مختصة بالعمل الحر",
+  icons: {
+    icon: "/public/logo.png",
+  },
+};
 
 export default function RootLayout({
   children,
@@ -13,8 +19,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="ar" suppressHydrationWarning>
       <body className="bg-[#f7f8fa]">
+        {/* <ThemeProvider> */}
         <TooltipProvider>
           <CombinedProviders>
             {children}
@@ -34,6 +41,7 @@ export default function RootLayout({
           </CombinedProviders>
         </TooltipProvider>
         <Footer />
+        {/* </ThemeProvider> */}
       </body>
     </html>
   );

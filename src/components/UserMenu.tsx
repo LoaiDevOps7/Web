@@ -56,16 +56,16 @@ const menuItems = [
         label: "الملف الشحصي",
         href: "/user/profile",
       },
-      {
-        icon: "/setting.png",
-        label: "الإعدادات",
-        href: "#",
-      },
-      {
-        icon: "/logout.png",
-        label: "تسجيل الخروج",
-        href: "#",
-      },
+      // {
+      //   icon: "/setting.png",
+      //   label: "الإعدادات",
+      //   href: "#",
+      // },
+      // {
+      //   icon: "/logout.png",
+      //   label: "تسجيل الخروج",
+      //   href: "#",
+      // },
     ],
   },
 ];

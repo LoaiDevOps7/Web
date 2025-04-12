@@ -9,6 +9,7 @@ import { useWallet } from "@/context/WalletContext";
 import { UserContext } from "@/context/UserContext";
 import { Bid } from "@/types/Bid";
 import Link from "next/link";
+// import { ModeToggle } from "@/components/ModeToggle";
 
 const Home = () => {
   const { publicNotifications, privateNotifications } = useNotifications();
@@ -34,6 +35,7 @@ const Home = () => {
     <div className="bg-[#f7f8fa]">
       <div className="mx-3">
         <Navigation />
+        {/* <ModeToggle /> */}
       </div>
       <div className="text-right m-10">
         <h2 className="text-slate-400">الصفحة الرئيسية</h2>
