@@ -9,7 +9,7 @@ export const metadata = {
   title: "مبدع",
   description: "نحن منصة مختصة بالعمل الحر",
   icons: {
-    icon: "/public/logo.png",
+    icon: "/logo.png",
   },
 };
 
@@ -21,7 +21,7 @@ export default function RootLayout({
   return (
     <html lang="ar" suppressHydrationWarning>
       <head>
-        <link rel="icon" href="/public/logo.png" />
+        <link rel="icon" href="/logo.png" />
       </head>
       <body className="bg-[#f7f8fa]">
         {/* <ThemeProvider> */}
