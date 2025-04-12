@@ -163,7 +163,7 @@ const UserProfile = () => {
           </div>
 
           {/* أزرار تعديل الملف الشخصي */}
-          <div className="flex flex-1 justify-around">
+          <div className="flex flex-1 flex-wrap justify-around">
             <EditProfile />
             <Button
               disabled={isLoadingRole}
@@ -262,14 +262,14 @@ const UserProfile = () => {
       {/* القسم الأيمن */}
       <div className="w-full xl:w-1/3 flex flex-col gap-4">
         {/* <div className="flex flex-1 justify-between"> */}
-          <SkillsSection onChange={handleSkillsChange} initialSkills={skills} />
-          <Button
-            onClick={handleSaveSkills}
-            disabled={isSaving}
-            className="mt-4 bg-lamagreen text-white py-2 px-4 rounded"
-          >
-            {isSaving ? "جاري الحفظ..." : "حفظ المهارات"}
-          </Button>
+        <SkillsSection onChange={handleSkillsChange} initialSkills={skills} />
+        <Button
+          onClick={handleSaveSkills}
+          disabled={isSaving}
+          className="mt-4 bg-lamagreen text-white py-2 px-4 rounded"
+        >
+          {isSaving ? "جاري الحفظ..." : "حفظ المهارات"}
+        </Button>
         {/* </div> */}
         <Performance />
         <UserNotifications />
