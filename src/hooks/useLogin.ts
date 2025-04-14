@@ -1,95 +1,89 @@
-import { useState, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { ERROR_MESSAGES } from "../lib/constants";
 import { loginSchema } from "@/utils/validation";
 import { login } from "@/api/auth";
 import { setCookie } from "nookies";
+import { useToast } from "./use-toast";
 
 export const useLogin = () => {
+  const { toast } = useToast();
   const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [termsAccepted, setTermsAccepted] = useState(false);
 
-  useEffect(() => {
-    const token = localStorage.getItem("authToken");
-    // console.log("Retrieved token on load:", token);
+  const [formState, setFormState] = useState({
+    email: "",
+    password: "",
+    showPassword: false,
+    termsAccepted: false,
+    isLoading: false,
+  });
+
+  const handleInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const { name, value, type, checked } = e.target;
+      setFormState((prev) => ({
+        ...prev,
+        [name]: type === "checkbox" ? checked : value,
+      }));
+    },
+    []
+  );
+
+  const togglePasswordVisibility = useCallback(() => {
+    setFormState((prev) => ({
+      ...prev,
+      showPassword: !prev.showPassword,
+    }));
   }, []);
 
-  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setEmail(e.target.value);
-  };
+  const handleLogin = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      setFormState((prev) => ({ ...prev, isLoading: true }));
 
-  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setPassword(e.target.value);
-  };
+      try {
+        await loginSchema.validate(formState, { abortEarly: false });
 
-  const toggleShowPassword = () => {
-    setShowPassword(!showPassword);
-  };
+        const { access_token, refresh_token } = await login(
+          formState.email,
+          formState.password
+        );
 
-  const handleTermsAcceptedChange = (
-    e: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    setTermsAccepted(e.target.checked);
-  };
+        if (access_token) {
+          // Secure token storage
+          localStorage.setItem("authToken", access_token);
+          localStorage.setItem("refreshToken", refresh_token);
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError("");
+          setCookie(null, "authToken", access_token, {
+            maxAge: 900000,
+            path: "/",
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+          });
 
-    try {
-      await loginSchema.validate(
-        { email, password, termsAccepted },
-        { abortEarly: false },
-      );
-
-      const response = await login(email, password);
-
-      const { access_token, refresh_token } = response;
-
-      if (access_token) {
-        // حفظ التوكن في localStorage
-        localStorage.setItem("authToken", access_token);
-        localStorage.setItem("refreshToken", refresh_token);
-
-        // حفظ التوكن في الكوكيز
-        setCookie(null, "authToken", access_token, {
-          maxAge: 900000,
-          secure: true,
-          sameSite: "none",
+          toast({
+            title: "تم تسجيل الدخول بنجاح",
+            description: "جاري تحويلك إلى لوحة التحكم...",
+          });
+          router.push("/user");
+        }
+      } catch (error) {
+        let errorMessage = "فشل عملية تسجيل الدخول";
+        toast({
+          variant: "destructive",
+          title: "خطأ في التسجيل",
+          description: errorMessage,
         });
-
-        router.push("/user");
-      } else {
-        setError(response.message || "Invalid credentials");
+      } finally {
+        setFormState((prev) => ({ ...prev, isLoading: false }));
       }
-    } catch (error: any) {
-      if (error.name === "ValidationError") {
-        setError(error.errors.join(", "));
-      } else {
-        setError(error.response?.data?.message || ERROR_MESSAGES.DEFAULT_ERROR);
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    },
+    [formState, router, toast]
+  );
 
   return {
-    email,
-    password,
-    showPassword,
-    error,
-    isLoading,
-    termsAccepted,
-    handleEmailChange,
-    handlePasswordChange,
-    toggleShowPassword,
-    handleTermsAcceptedChange,
+    formState,
+    handleInputChange,
+    togglePasswordVisibility,
     handleLogin,
   };
 };

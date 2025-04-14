@@ -6,7 +6,7 @@ import Performance from "@/components/Performance";
 import UserNotifications from "@/components/UserNotifications";
 import EditProfile from "@/components/EditProfile";
 import AddGallery from "@/components/AddGallery";
-import VerifyAccount from "@/components/VerifyAccount";
+// import VerifyAccount from "@/components/VerifyAccount";
 import { Button } from "@/components/ui/button";
 import { usePortfolio } from "@/context/PortfolioContext";
 import { useProfile } from "@/context/ProfileContext";
@@ -174,9 +174,9 @@ const UserProfile = () => {
                 ? "التحويل إلى Freelancer"
                 : "التحويل إلى Owner"}
             </Button>
-            {profile.user.kycVerification?.verificationStatus !== "pending" &&
+            {/* {profile.user.kycVerification?.verificationStatus !== "pending" &&
               profile.user.kycVerification?.verificationStatus !==
-                "approved" && <VerifyAccount />}
+                "approved" && <VerifyAccount />} */}
           </div>
 
           {/* باقي الكود - البطاقات الصغيرة */}

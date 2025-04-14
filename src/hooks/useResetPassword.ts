@@ -1,98 +1,118 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { resetPassword } from "../api/auth";
-import { SUCCESS_MESSAGES, ERROR_MESSAGES } from "../lib/constants";
 import { useRouter } from "next/navigation";
 import { resetPasswordSchema } from "../utils/validation";
+import { useToast } from "./use-toast";
 
 export const useResetPassword = () => {
+  const { toast } = useToast();
   const router = useRouter();
-  const [userId, setUserId] = useState<number | null>(null);
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [passwordMatchError, setPasswordMatchError] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
-  const [verificationError, setVerificationError] = useState("");
-  
+
+ const [formState, setFormState] = useState({
+   userId: null as number | null,
+   newPassword: "",
+   confirmPassword: "",
+   showPassword: false,
+   showConfirmPassword: false,
+   isLoading: false,
+   passwordMatchError: false,
+ });
+
   useEffect(() => {
-    const token = localStorage.getItem("authToken");
-    // console.log("Retrieved token on load RessetPass:", token);
-    const storedUserId = localStorage.getItem("userId");
+    const storedUserId = sessionStorage.getItem("userId");
     if (storedUserId) {
-      setUserId(Number(storedUserId));
+      setFormState((prev) => ({
+        ...prev,
+        userId: parseInt(storedUserId, 10) || null,
+      }));
     }
   }, []);
 
-  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setNewPassword(e.target.value);
-    setPasswordMatchError(e.target.value !== confirmPassword);
-  };
+  useEffect(() => {
+    const match =
+      formState.newPassword === formState.confirmPassword &&
+      formState.confirmPassword.length > 0;
 
-  const handleConfirmPasswordChange = (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    setConfirmPassword(e.target.value);
-    setPasswordMatchError(e.target.value !== newPassword);
-  };
+    setFormState((prev) => ({
+      ...prev,
+      passwordMatchError: !match,
+    }));
+  }, [formState.newPassword, formState.confirmPassword]);
 
-  const toggleShowPassword = () => {
-    setShowPassword(!showPassword);
-  };
 
-  const toggleShowConfirmPassword = () => {
-    setShowConfirmPassword(!showConfirmPassword);
-  };
+  const handleInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const { name, value } = e.target;
+      setFormState((prev) => ({ ...prev, [name]: value }));
+    },
+    []
+  );
 
-  const handleResetPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
+   const toggleShowPassword = useCallback(() => {
+     setFormState((prev) => ({
+       ...prev,
+       showPassword: !prev.showPassword,
+     }));
+   }, []);
 
-    if (!userId) {
-      setVerificationError("User ID is required to reset the password");
-      return;
-    }
+   const toggleShowConfirmPassword = useCallback(() => {
+     setFormState((prev) => ({
+       ...prev,
+       showConfirmPassword: !prev.showConfirmPassword,
+     }));
+   }, []);
 
-    try {
-      setIsLoading(true);
-      setVerificationError("");
-      setSuccessMessage("");
+  const handleResetPassword = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
 
-      // Validation
-      await resetPasswordSchema.validate(
-        { newPassword, confirmPassword },
-        { abortEarly: false }
-      );
+      if (!formState.userId) {
+        toast({
+          variant: "destructive",
+          title: "خطأ في المصادقة",
+          description: "الجلسة منتهية، يرجى طلب رمز جديد",
+        });
+        return router.push("/forgot-password");
+      }
 
-      // Proceed to reset the password
-      console.log("data:", userId, newPassword);
-      await resetPassword(userId, newPassword);
+      try {
+        setFormState((prev) => ({ ...prev, isLoading: true }));
 
-      setSuccessMessage(SUCCESS_MESSAGES.PASSWORD_RESET_SUCCESS);
-      localStorage.removeItem("userId");
-      router.push("/user");
-    } catch (error: any) {
-      setVerificationError(error.message || ERROR_MESSAGES.DEFAULT_ERROR);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+        await resetPasswordSchema.validate(
+          {
+            newPassword: formState.newPassword,
+            confirmPassword: formState.confirmPassword,
+          },
+          { abortEarly: false }
+        );
+
+        await resetPassword(formState.userId, formState.newPassword);
+
+        toast({
+          title: "تم التحديث بنجاح",
+          description: "جاري تحويلك إلى لوحة التحكم...",
+        });
+        localStorage.removeItem("userId");
+        router.push("/user");
+      } catch (error: any) {
+        let errorMessage = "فشل في تحديث كلمة المرور، يرجى المحاولة لاحقًا";
+        toast({
+          variant: "destructive",
+          title: "فشل العملية",
+          description: errorMessage,
+        });
+      } finally {
+        setFormState((prev) => ({ ...prev, isLoading: false }));
+      }
+    },
+    [formState, router, toast]
+  );
 
   return {
-    userId,
-    newPassword,
-    confirmPassword,
-    showPassword,
-    showConfirmPassword,
-    passwordMatchError,
-    isLoading,
-    successMessage,
-    verificationError,
-    handlePasswordChange,
-    handleConfirmPasswordChange,
+    formState,
+    handleInputChange,
     handleResetPassword,
     toggleShowPassword,
     toggleShowConfirmPassword,
-    setUserId,
   };
 };

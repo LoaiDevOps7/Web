@@ -1,9 +1,7 @@
-import { setCookie, destroyCookie } from "nookies";
+import { setCookie } from "nookies";
 import axiosClient from "../lib/axiosClient";
 import axios from "axios";
 import { COOKIE_CONFIG } from "@/lib/constants";
-
-// const authToken = localStorage.getItem("authToken");
 
 const handleApiError = (error: unknown, defaultMessage: string) => {
   if (axios.isAxiosError(error)) {

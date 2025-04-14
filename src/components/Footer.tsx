@@ -21,8 +21,7 @@ const Footer = () => {
             </Link>
             {/* description */}
             <p className="mt-4 text-sm font-medium leading-[2rem] w-[80%] text-gray-600 text-center mx-auto">
-              أهلا و سهلا بكم في منصة مبدع حيث يجتمع التطور و الإبداع في مكان
-              واحد
+              .مبدع. جميع الحقوق محفوظة  &copy;
             </p>
           </div>
           {/* about us links */}

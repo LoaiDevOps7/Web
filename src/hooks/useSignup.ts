@@ -1,139 +1,200 @@
-import { useState } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { register, resendVerification, verifyEmail } from "../api/auth";
-import { SUCCESS_MESSAGES, ERROR_MESSAGES } from "../lib/constants";
 import { useRouter } from "next/navigation";
 import { registerSchema } from "../utils/validation";
+import { debounce } from "lodash";
+import { useToast } from "@/hooks/use-toast";
 
 export const useSignup = () => {
+  const { toast } = useToast();
   const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [passwordMatchError, setPasswordMatchError] = useState(false);
-  const [verificationCode, setVerificationCode] = useState("");
-  const [verificationError, setVerificationError] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
-  const [termsAccepted, setTermsAccepted] = useState(false);
 
-  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setPassword(e.target.value);
-    setPasswordMatchError(e.target.value !== confirmPassword);
-  };
+  const [formState, setFormState] = useState({
+    email: "",
+    password: "",
+    confirmPassword: "",
+    verificationCode: "",
+    showPassword: false,
+    showConfirmPassword: false,
+    termsAccepted: false,
+  });
 
-  const handleConfirmPasswordChange = (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    setConfirmPassword(e.target.value);
-    setPasswordMatchError(e.target.value !== password);
-  };
+  const [uiState, setUIState] = useState({
+    passwordMatchError: false,
+    isLoading: false,
+    isCodeSent: false,
+  });
 
-  const toggleShowPassword = () => {
-    setShowPassword(!showPassword);
-  };
+  const debouncedEmailValidation = useMemo(
+    () =>
+      debounce(async (email: string) => {
+        try {
+          await registerSchema.validate({ email });
+          setUIState((prev) => ({ ...prev, verificationError: "" }));
+        } catch (error: any) {
+          setUIState((prev) => ({
+            ...prev,
+            verificationError: error.message || "Invalid email format",
+          }));
+        }
+      }, 500),
+    []
+  );
 
-  const toggleShowConfirmPassword = () => {
-    setShowConfirmPassword(!showConfirmPassword);
-  };
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value, checked } = e.target;
+    setFormState((prev) => ({
+      ...prev,
+      [name]: name === "termsAccepted" ? checked : value,
+    }));
+  }, []);
 
-  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setEmail(e.target.value);
-  };
+  const handleEmailChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      handleChange(e);
+      debouncedEmailValidation(e.target.value);
+    },
+    [handleChange, debouncedEmailValidation]
+  );
 
-  const handleVerificationCodeChange = (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    setVerificationCode(e.target.value);
-  };
 
-  const handleTermsAcceptedChange = (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    setTermsAccepted(e.target.checked);
-  };
+  const handlePasswordChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      handleChange(e);
+      setUIState((prev) => ({
+        ...prev,
+        passwordMatchError: e.target.value !== formState.confirmPassword,
+      }));
+    },
+    [formState.confirmPassword, handleChange]
+  );
 
-  const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleConfirmPasswordChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      handleChange(e);
+      setUIState((prev) => ({
+        ...prev,
+        passwordMatchError: e.target.value !== formState.password,
+      }));
+    },
+    [formState.password, handleChange]
+  );
 
-    try {
-      setIsLoading(true);
-      setVerificationError("");
-      setSuccessMessage("");
+  const toggleShowPassword = useCallback(() => {
+    setFormState((prev) => ({
+      ...prev,
+      showPassword: !prev.showPassword,
+    }));
+  }, []);
 
-      await registerSchema.validate(
-        { email, password, confirmPassword, termsAccepted },
-        { abortEarly: false }
-      );
+  const toggleShowConfirmPassword = useCallback(() => {
+    setFormState((prev) => ({
+      ...prev,
+      showConfirmPassword: !prev.showConfirmPassword,
+    }));
+  }, []);
 
-      await register(email, password);
-      setSuccessMessage(SUCCESS_MESSAGES.REGISTRATION_SUCCESS);
-    } catch (error: any) {
-      setVerificationError(error.message || ERROR_MESSAGES.DEFAULT_ERROR);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const validationSchema = useMemo(() => registerSchema, []);
 
-  const handleVerifyEmail = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSignUp = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
 
-    try {
-      setIsLoading(true);
-      setVerificationError("");
-      setSuccessMessage("");
+      try {
+        setUIState((prev) => ({
+          ...prev,
+          isLoading: true,
+        }));
 
-      await verifyEmail(email, verificationCode);
+        await validationSchema.validate(formState, { abortEarly: false });
+        await register(formState.email, formState.password);
+        setUIState((prev) => ({ ...prev, isCodeSent: true }));
+        toast({
+          title: "تم التسجيل بنجاح",
+          description: "تفقد بريدك الإلكتروني لإكمال التحقق",
+        });
+      } catch (error: any) {
+        toast({
+          variant: "destructive",
+          title: "خطأ في التسجيل",
+          description:
+            error.message || "حدث خطأ غير متوقع، يرجى المحاولة لاحقًا",
+        });
+      } finally {
+        setUIState((prev) => ({ ...prev, isLoading: false }));
+      }
+    },
+    [formState, toast, validationSchema]
+  );
 
-      setSuccessMessage(SUCCESS_MESSAGES.EMAIL_VERIFICATION_SUCCESS);
-      router.push("/user");
-    } catch (error: any) {
-      setVerificationError(error.message || ERROR_MESSAGES.DEFAULT_ERROR);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const handleVerifyEmail = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
 
-  const handleResendVerification = async (e: React.FormEvent) => {
-    e.preventDefault();
+      try {
+        setUIState((prev) => ({
+          ...prev,
+          isLoading: true,
+        }));
 
-    try {
-      setIsLoading(true);
-      setVerificationError("");
-      setSuccessMessage("");
+        await verifyEmail(formState.email, formState.verificationCode);
 
-      await resendVerification(email);
-      setSuccessMessage(SUCCESS_MESSAGES.RESAND_VERIFICATION_SUCCESS);
-    } catch (error: any) {
-      setVerificationError(error.message || ERROR_MESSAGES.DEFAULT_ERROR);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+        toast({
+          title: "تم التحقق بنجاح!",
+          description: "جاري تحويلك إلى لوحة التحكم...",
+        });
+        router.push("/user");
+      } catch (error: any) {
+        toast({
+          variant: "destructive",
+          title: "فشل التحقق",
+          description: error.message || "رمز التحقق غير صحيح أو منتهي الصلاحية",
+        });
+      } finally {
+        setUIState((prev) => ({ ...prev, isLoading: false }));
+      }
+    },
+    [formState, router, toast]
+  );
+
+  const handleResendVerification = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      try {
+        if (!formState.email) {
+        throw new Error("لم يتم إرسال الرمز مسبقاً");
+      }
+        setUIState((prev) => ({ ...prev, isLoading: true }));
+        await resendVerification(formState.email);
+        toast({
+          title: "تم إعادة الإرسال",
+          description: "تفقد بريدك الإلكتروني للحصول على الرمز الجديد",
+        });
+      } catch (error: any) {
+        toast({
+          variant: "destructive",
+          title: "فشل إعادة الإرسال",
+          description: error.message || "يرجى المحاولة مرة أخرى بعد قليل",
+        });
+      } finally {
+        setUIState((prev) => ({ ...prev, isLoading: false }));
+      }
+    },
+    [formState.email, toast]
+  );
 
   return {
-    email,
-    password,
-    confirmPassword,
-    showPassword,
-    showConfirmPassword,
-    passwordMatchError,
-    verificationCode,
-    verificationError,
-    termsAccepted,
-    isLoading,
-    successMessage,
+    formState,
+    setFormState,
+    uiState,
+    handleChange,
     handlePasswordChange,
-    handleConfirmPasswordChange,
-    toggleShowPassword,
-    toggleShowConfirmPassword,
     handleEmailChange,
-    handleVerificationCodeChange,
-    handleTermsAcceptedChange,
+    handleConfirmPasswordChange,
     handleSignUp,
     handleVerifyEmail,
     handleResendVerification,
-    setVerificationError,
+    toggleShowPassword,
+    toggleShowConfirmPassword,
   };
 };

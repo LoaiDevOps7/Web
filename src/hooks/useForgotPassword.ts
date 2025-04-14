@@ -1,91 +1,106 @@
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { forgotPassword, verifyResetCode } from "../api/auth";
-import { SUCCESS_MESSAGES, ERROR_MESSAGES } from "../lib/constants";
 import { forgotPasswordSchema } from "../utils/validation";
 import { useRouter } from "next/navigation";
+import { useToast } from "./use-toast";
 
 export const useForgotPassword = () => {
+  const { toast } = useToast();
   const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [resetCode, setResetCode] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
-  const [verificationError, setVerificationError] = useState("");
 
-  useEffect(() => {
-    const token = localStorage.getItem("authToken");
-    // console.log("Retrieved token on load forgotPass:", token);
-  }, []);
+  const [formState, setFormState] = useState({
+    email: "",
+    resetCode: "",
+    isLoading: false,
+    isCodeLoading: false,
+  });
 
-  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setEmail(e.target.value);
-  };
+  const handleInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const { name, value } = e.target;
+      setFormState((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+    },
+    []
+  );
 
-  const handleResetCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setResetCode(e.target.value);
-  };
+  const handleForgotPassword = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      try {
+        setFormState((prev) => ({ ...prev, isLoading: true }));
 
-  const handleForgotPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      setIsLoading(true);
-      setVerificationError("");
-      setSuccessMessage("");
-
-      await forgotPasswordSchema.validate({ email }, { abortEarly: false });
-
-      const response = await forgotPassword(email);
-
-      if (response.userId) {
-        localStorage.setItem("userId", response.userId.toString());
-      }
-
-      setSuccessMessage(SUCCESS_MESSAGES.FORGOT_PASSWORD_SUCCESS);
-    } catch (error: any) {
-      setVerificationError(error.message || ERROR_MESSAGES.DEFAULT_ERROR);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleVerifyResetCode = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      setIsLoading(true);
-      setVerificationError("");
-
-      const storedUserId = localStorage.getItem("userId");
-      // console.log("storedUserId:", storedUserId);
-      if (!storedUserId) {
-        throw new Error(
-          "User ID not found. Please request a reset code again."
+        await forgotPasswordSchema.validate(
+          { email: formState.email },
+          { abortEarly: false }
         );
+
+        const response = await forgotPassword(formState.email);
+
+        if (response?.userId) {
+          localStorage.setItem("userId", response.userId.toString());
+          toast({
+            title: "تم الإرسال بنجاح",
+            description:
+              "تم إرسال البريد الإلكتروني لإعادة تعيين كلمة المرور بنجاح",
+          });
+        }
+      } catch (error: any) {
+        toast({
+          variant: "destructive",
+          title: "خطأ في الإرسال",
+          description: "حدث خطأ. يرجى المحاولة مرة أخرى لاحقا",
+        });
+      } finally {
+        setFormState((prev) => ({ ...prev, isLoading: false }));
       }
-      const userId = Number(storedUserId);
+    },
+    [formState, router, toast]
+  );
 
-      const response = await verifyResetCode(userId, resetCode);
+  const handleVerifyResetCode = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      try {
+        setFormState((prev) => ({ ...prev, isCodeLoading: true }));
 
-      router.push(`/reset-password/${userId}`);
+        const storedUserId = localStorage.getItem("userId");
+        if (!storedUserId) {
+          toast({
+            variant: "destructive",
+            title: "خطأ في التحقق",
+            description:
+              "لم يتم العثور على معرف المستخدم. يرجى طلب إعادة تعيين الرمز مرة أخرى",
+          });
+        }
+        const userId = Number(storedUserId);
 
-      setSuccessMessage(
-        response.message || "Reset code verified successfully."
-      );
-    } catch (error: any) {
-      setVerificationError(error.message || ERROR_MESSAGES.DEFAULT_ERROR);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+        await verifyResetCode(userId, formState.resetCode);
+
+        toast({
+          title: "تم التحقق بنجاح",
+          description: "جاري تحويلك إلى صفحة إعادة التعيين...",
+        });
+        router.push(`/reset-password/${userId}`);
+      } catch (error: any) {
+        toast({
+          variant: "destructive",
+          title: "فشل التحقق",
+          description: "حدث خطأ. يرجى المحاولة مرة أخرى لاحقا",
+        });
+      } finally {
+        setFormState((prev) => ({ ...prev, isLoading: false }));
+      }
+    },
+    [formState.resetCode, router, toast]
+  );
 
   return {
-    email,
-    resetCode,
-    isLoading,
-    successMessage,
-    verificationError,
-    handleEmailChange,
+    formState,
+    handleInputChange,
     handleForgotPassword,
-    handleResetCodeChange,
     handleVerifyResetCode,
   };
 };

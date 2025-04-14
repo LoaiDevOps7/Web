@@ -1,38 +1,28 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { useSignup } from "@/hooks/useSignup";
-import { useEffect, useState } from "react";
-import Image from "next/image";
+import { useToast } from "@/hooks/use-toast";
 
 export default function SignupPage() {
+  const { toast } = useToast();
+
   const {
-    email,
-    password,
-    confirmPassword,
-    showPassword,
-    showConfirmPassword,
-    passwordMatchError,
-    verificationCode,
-    verificationError,
-    isLoading,
-    successMessage,
-    termsAccepted,
+    formState,
+    handleChange,
+    uiState,
     handleEmailChange,
     handlePasswordChange,
     handleConfirmPasswordChange,
-    toggleShowPassword,
-    toggleShowConfirmPassword,
-    handleVerificationCodeChange,
-    handleTermsAcceptedChange,
     handleSignUp,
     handleVerifyEmail,
     handleResendVerification,
-    setVerificationError,
+    toggleShowPassword,
+    toggleShowConfirmPassword,
   } = useSignup();
-
-  const [isFirstClick, setIsFirstClick] = useState(true);
   const [isButtonDisabled, setIsButtonDisabled] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
 
@@ -49,52 +39,70 @@ export default function SignupPage() {
     e.preventDefault();
 
     // التحقق من تعبئة الحقول المطلوبة
-    if (!email || !password || !confirmPassword || !termsAccepted) {
-      setVerificationError("Please fill in all required fields.");
-      return;
-    }
+     if (
+       !formState.email ||
+       !formState.password ||
+       !formState.confirmPassword ||
+       !formState.termsAccepted
+     ) {
+       toast({
+         variant: "destructive",
+         title: "حقول مطلوبة",
+         description: "يرجى تعبئة جميع الحقول المطلوبة",
+       });
+       return;
+     }
 
     // إذا كانت كلمات المرور غير متطابقة، لا نقوم بالمتابعة
-    if (passwordMatchError) {
-      setVerificationError("Passwords do not match.");
+    if (uiState.passwordMatchError) {
+      toast({
+        variant: "destructive",
+        title: "خطأ في كلمة المرور",
+        description: "كلمات المرور غير متطابقة",
+      });
       return;
     }
 
-    setVerificationError(""); // إعادة تعيين رسالة الخطأ إن وجدت
     setIsButtonDisabled(true);
 
-    if (isFirstClick) {
-      // استدعاء التسجيل في حالة الضغط الأولي
+     try {
+    if (!uiState.isCodeSent) {
       await handleSignUp(e);
-      setIsFirstClick(false);
+      setResendTimer(90);
     } else {
-      // في حالة إعادة إرسال الرمز
+      if (resendTimer > 0) return;
       await handleResendVerification(e);
-      setResendTimer(60);
+      setResendTimer(90);
     }
-
-    // منع الضغط المتكرر لمدة 3 ثواني
+  } catch (error) {
+    toast({
+      variant: "destructive",
+      title: "حقول مطلوبة",
+      description: "يرجى تعبئة جميع الحقول المطلوبة",
+    });
+  } finally {
     setTimeout(() => setIsButtonDisabled(false), 3000);
-  };
+  }  };
 
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4">
-    <Image
-      src="/logo.png"
-      alt="logo"
-      width={150}
-      height={100}
-      className="text-center"
-    />
+      <Link href="/">
+        <Image
+          src="/logo.png"
+          alt="logo"
+          width={150}
+          height={100}
+          className="text-center"
+        />
+      </Link>
       <div className="p-8 w-full max-w-sm space-y-6">
         <div className="space-y-4">
           <p className="text-sm text-gray-600">
-            Our Freelancer account is all you need to access all Freelancer
-            services.
+            حساب مبدع الخاص بنا هو كل ما تحتاجه للوصول إلى جميع خدمات المستقلين.
           </p>
           <p className="text-sm text-gray-600">
-            Only email registration is supported in your region.
+            يتم دعم تسجيل البريد الإلكتروني فقط في منطقتك.
           </p>
 
           <form className="space-y-4">
@@ -102,115 +110,125 @@ export default function SignupPage() {
               <input
                 required
                 type="email"
-                placeholder="Email address"
-                value={email}
+                name="email"
+                placeholder="عنوان البريد الالكتروني"
+                value={formState.email}
                 onChange={handleEmailChange}
-                className="w-full px-4 py-2 border border-green-500 rounded-lg outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-lamagreen rounded-lg outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
               />
             </div>
 
             <div className="relative">
               <input
                 required
-                type={showPassword ? "text" : "password"}
-                placeholder="Password"
-                value={password}
+                type={formState.showPassword ? "text" : "password"}
+                name="password"
+                placeholder="كلمة المرور"
+                value={formState.password}
                 onChange={handlePasswordChange}
-                className="w-full px-4 py-2 border border-green-500 rounded-lg outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-lamagreen rounded-lg outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
               />
               <button
                 type="button"
                 onClick={toggleShowPassword}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-600"
+                className="absolute inset-y-0 right-8 pr-3 flex items-center text-gray-600"
               >
-                {showPassword ? <FaEyeSlash /> : <FaEye />}
+                {formState.showPassword ? (
+                  <FaEyeSlash className="text-gray-500 hover:text-gray-600" />
+                ) : (
+                  <FaEye className="text-gray-500 hover:text-gray-600" />
+                )}
               </button>
             </div>
 
             <div className="relative">
               <input
                 required
-                type={showConfirmPassword ? "text" : "password"}
-                placeholder="Confirm password"
-                value={confirmPassword}
+                type={formState.showConfirmPassword ? "text" : "password"}
+                name="confirmPassword"
+                placeholder="تأكيد كلمة المرور"
+                value={formState.confirmPassword}
                 onChange={handleConfirmPasswordChange}
-                className="w-full px-4 py-2 border border-green-500 rounded-lg outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-lamagreen rounded-lg outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
               />
               <button
                 type="button"
                 onClick={toggleShowConfirmPassword}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-600"
+                className="absolute inset-y-0 right-8 pr-3 flex items-center text-gray-600"
               >
-                {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+                {formState.showPassword ? (
+                  <FaEyeSlash className="text-gray-500 hover:text-gray-600" />
+                ) : (
+                  <FaEye className="text-gray-500 hover:text-gray-600" />
+                )}
               </button>
             </div>
-
-            {passwordMatchError && (
-              <p className="text-sm text-red-500">Passwords do not match.</p>
-            )}
-
-            <div className="flex space-x-10 items-center">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 relative">
               <input
                 type="text"
-                placeholder="# Code"
-                value={verificationCode}
-                onChange={handleVerificationCodeChange}
-                className="w-1/2 px-4 py-2 border border-green-500 rounded-lg outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                name="verificationCode"
+                maxLength={6}
+                placeholder="# الكود"
+                value={formState.verificationCode}
+                onChange={handleChange}
+                className="w-full sm:w-1/2 px-4 py-2 border border-lamagreen rounded-lg outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
               />
               <button
                 type="button"
                 onClick={handleButtonClick}
-                disabled={isButtonDisabled}
-                className="text-gray-600 border border-green-500 px-4 py-2 rounded-lg hover:bg-green-600 transition-colors duration-200"
+                disabled={
+                  isButtonDisabled || (uiState.isCodeSent && resendTimer > 0)
+                }
+                className="w-full sm:w-auto text-gray-600 border border-lamagreen px-4 py-2 rounded-lg hover:bg-green-500 transition-colors duration-200 whitespace-nowrap min-w-[120px] sm:min-w-[160px] text-sm sm:text-base"
               >
                 {isButtonDisabled
-                  ? "Please wait..."
+                  ? "انتظر..."
                   : resendTimer > 0
-                  ? `Resend in ${resendTimer}s`
-                  : isFirstClick
-                  ? "Send Code"
-                  : "Resend Code"}
+                  ? `إرسال مجدداً ${resendTimer} ث`
+                  : uiState.isCodeSent
+                  ? "إعادة الإرسال"
+                  : "إرسال الكود"}
               </button>
             </div>
-
-            {verificationError && (
-              <p className="text-sm text-red-500">{verificationError}</p>
-            )}
-
-            {successMessage && (
-              <p className="text-sm text-green-500">{successMessage}</p>
-            )}
 
             <div className="flex text-xs">
               <input
                 required
                 type="checkbox"
                 name="termsAccepted"
-                checked={termsAccepted}
-                onChange={handleTermsAcceptedChange}
-                className="w-5 h-5 accent-green-500 rounded-lg focus:ring-green-500"
+                checked={formState.termsAccepted}
+                onChange={handleChange}
+                className="w-5 h-5 accent-lamagreen rounded-lg focus:ring-green-500"
               />
               <label className="ml-2 text-gray-600">
-                I confirm that I have read, consent and agree to
-                Freelancer&apos;s{" "}
-                <Link href="#" className="text-green-600 hover:underline">
-                  Terms of Use
+                أؤكد أنني قرأت ووافقت على{" "}
+                <Link href="#" className="text-lamagreen hover:underline">
+                  شروط الاستخدام
                 </Link>{" "}
-                and{" "}
-                <Link href="#" className="text-green-600 hover:underline">
-                  Privacy Policy
+                و{" "}
+                <Link href="#" className="text-lamagreen hover:underline">
+                  سياسة الخصوصية
                 </Link>
-                .
               </label>
             </div>
 
             <button
               type="button"
-              onClick={handleVerifyEmail}
-              disabled={isLoading}
-              className="w-full bg-green-500 text-white py-2.5 rounded-lg hover:bg-green-600 transition-colors duration-200"
+              onClick={async (e) => {
+                try {
+                  await handleVerifyEmail(e);
+                } catch (error) {
+                  toast({
+                    variant: "destructive",
+                    title: "فشل التحقق",
+                    description: "رمز التحقق غير صحيح أو منتهي الصلاحية",
+                  });
+                }
+              }}
+              disabled={uiState.isLoading}
+              className="w-full bg-lamagreen text-white py-2.5 rounded-lg hover:bg-green-500 transition-colors duration-200"
             >
-              {isLoading ? "Signing Up..." : "Sign up"}
+              {uiState.isLoading ? "جاري التسجيل..." : "إنشاء حساب"}
             </button>
           </form>
 
@@ -218,17 +236,13 @@ export default function SignupPage() {
             <div className="flex justify-center">
               <Link
                 href="/sign-in"
-                className="text-green-600 text-sm hover:underline"
+                className="text-lamagreen text-sm hover:underline"
               >
-                Login
+                تسجيل الدخول
               </Link>
             </div>
           </div>
         </div>
-
-        <footer className="fixed bottom-0 left-0 right-0 text-center text-sm text-gray-500 py-4 bg-white">
-          <Link href="#">© 2025 FLS. All rights reserved. Contact us.</Link>
-        </footer>
       </div>
     </div>
   );

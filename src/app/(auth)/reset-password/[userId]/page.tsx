@@ -2,59 +2,70 @@
 
 import { useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { FaEye, FaEyeSlash } from "react-icons/fa";
-import { useResetPassword } from "@/hooks/useResetPassword";
 import Link from "next/link";
 import Image from "next/image";
+import { FaEye, FaEyeSlash } from "react-icons/fa";
+import { useResetPassword } from "@/hooks/useResetPassword";
+import { useToast } from "@/hooks/use-toast";
 
 export default function ResetPasswordPage() {
-  const router = useRouter();
-  const { userId } = useParams();
+  const { toast } = useToast();
+   const router = useRouter();
+   const params = useParams();
+   const userIdParam = params.userId;
 
   const {
-    newPassword,
-    confirmPassword,
-    showPassword,
-    showConfirmPassword,
-    passwordMatchError,
-    isLoading,
-    successMessage,
-    verificationError,
-    handlePasswordChange,
-    handleConfirmPasswordChange,
+    formState,
+    handleInputChange,
     handleResetPassword,
     toggleShowPassword,
     toggleShowConfirmPassword,
-    setUserId,
   } = useResetPassword();
 
-  useEffect(() => {
-    if (!userId) {
-      router.push("/forgot-password");
-    } else {
-      setUserId(Number(userId));
+   useEffect(() => {
+    if (formState.passwordMatchError) {
+      toast({
+        variant: "destructive",
+        title: "خطأ في المدخلات",
+        description: "كلمات المرور غير متطابقة",
+      });
     }
-  }, [userId, router, setUserId]);
+  }, [formState.passwordMatchError, toast]);
+
+  useEffect(() => {
+    const validateUserId = () => {
+      if (!userIdParam) {
+        router.push("/forgot-password");
+        return;
+      }
+
+      const userId = Number(userIdParam);
+      if (isNaN(userId)) {
+        router.push("/forgot-password");
+      }
+    };
+
+    validateUserId();
+  }, [userIdParam, router]);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4">
-      <Image
-        src="/logo.png"
-        alt="logo"
-        width={150}
-        height={100}
-        className="text-center"
-      />
-      {userId && (
-        <div className="p-8 w-full max-w-sm space-y-6">
-          <h1 className="text-3xl font-bold text-center text-gray-800">
-            Freelancer
-          </h1>
+      <Link href="/">
+        <Image
+          src="/logo.png"
+          alt="logo"
+          width={150}
+          height={100}
+          className="text-center"
+        />
+      </Link>
 
+      {userIdParam && (
+        <div className="p-8 w-full max-w-sm space-y-6">
           <div className="text-center space-y-2">
-            <p className="text-gray-600 ext-3xl">Reset password</p>
+            <p className="text-gray-600 ext-3xl">إعادة تعيين كلمة المرور</p>
             <p className="text-gray-600 text-sm">
-              Enter a new password below to change your password.
+              أدخل كلمة مرور جديدة أدناه لتغيير كلمة المرور الخاصة بك
             </p>
           </div>
 
@@ -62,54 +73,55 @@ export default function ResetPasswordPage() {
             <div className="relative">
               <input
                 required
-                type={showPassword ? "text" : "password"}
-                placeholder="New Password"
-                value={newPassword}
-                onChange={handlePasswordChange}
-                className="w-full px-4 py-2 border border-green-500 rounded-lg outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                type={formState.showPassword ? "text" : "password"}
+                name="newPassword"
+                placeholder="كلمة المرور الجديدة"
+                value={formState.newPassword}
+                onChange={handleInputChange}
+                className="w-full px-4 py-2 border border-lamagreen rounded-lg outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
               />
               <button
                 type="button"
                 onClick={toggleShowPassword}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-600"
+                className="absolute inset-y-0 right-8 pr-3 flex items-center text-gray-600"
               >
-                {showPassword ? <FaEyeSlash /> : <FaEye />}{" "}
+                {formState.showPassword ? (
+                  <FaEyeSlash className="text-gray-500 hover:text-gray-600" />
+                ) : (
+                  <FaEye className="text-gray-500 hover:text-gray-600" />
+                )}
               </button>
             </div>
             <div className="relative">
               <input
                 required
-                type={showConfirmPassword ? "text" : "password"}
-                placeholder="Confirm Password"
-                value={confirmPassword}
-                onChange={handleConfirmPasswordChange}
-                className="w-full px-4 py-2 border border-green-500 rounded-lg outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                type={formState.showConfirmPassword ? "text" : "password"}
+                name="confirmPassword"
+                placeholder="تأكيد كلمة المرور"
+                value={formState.confirmPassword}
+                onChange={handleInputChange}
+                className="w-full px-4 py-2 border border-lamagreen rounded-lg outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
               />
               <button
                 type="button"
                 onClick={toggleShowConfirmPassword}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-600"
+                className="absolute inset-y-0 right-8 pr-3 flex items-center text-gray-600"
               >
-                {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}{" "}
+                {formState.showPassword ? (
+                  <FaEyeSlash className="text-gray-500 hover:text-gray-600" />
+                ) : (
+                  <FaEye className="text-gray-500 hover:text-gray-600" />
+                )}
               </button>
             </div>
-            {passwordMatchError && (
-              <p className="text-red-500 text-sm">Passwords do not match.</p>
-            )}
             <button
               type="submit"
-              disabled={isLoading}
-              className="w-full bg-green-500 text-white py-2.5 rounded-lg hover:bg-green-600 transition-colors duration-200"
+              disabled={formState.isLoading}
+              className="w-full bg-lamagreen text-white py-2.5 rounded-lg hover:bg-green-500 transition-colors duration-200"
             >
-              {isLoading ? "Resetting..." : "Reset Password"}
+              {formState.isLoading ? "جاري التحديث..." : "تعيين كلمة المرور"}
             </button>
           </form>
-          {successMessage && (
-            <p className="text-green-500 text-center">{successMessage}</p>
-          )}
-          {verificationError && (
-            <p className="text-red-500 text-center">{verificationError}</p>
-          )}
         </div>
       )}
       <div className="text-center">
@@ -118,14 +130,10 @@ export default function ResetPasswordPage() {
             href="/forgot-password"
             className="text-green-600 text-sm hover:underline"
           >
-            Get Back
+            العودة
           </Link>
         </div>
       </div>
-
-      <footer className="fixed bottom-0 left-0 right-0 text-center text-sm text-gray-500 py-4 bg-white">
-        <Link href="#">© 2025 FLS. All rights reserved. Contact us.</Link>
-      </footer>
     </div>
   );
 }
