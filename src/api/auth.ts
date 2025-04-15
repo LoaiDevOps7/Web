@@ -49,14 +49,6 @@ export const resendVerification = async (email: string) => {
 export const login = async (email: string, password: string) => {
   try {
     const response = await axiosClient.post("/auth/login", { email, password });
-    setCookie(null, "authToken", response.data.access_token, {
-      ...COOKIE_CONFIG,
-      maxAge: 900, // 15 دقيقة
-    });
-    setCookie(null, "refreshToken", response.data.refresh_token, {
-      ...COOKIE_CONFIG,
-      maxAge: 604800, // 7 أيام
-    });
     return response.data;
   } catch (error) {
     handleApiError(error, "فشل في تسجيل الدخول");

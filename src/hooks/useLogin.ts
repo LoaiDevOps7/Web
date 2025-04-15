@@ -1,5 +1,4 @@
 import { useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import { loginSchema } from "@/utils/validation";
 import { login } from "@/api/auth";
 import { setCookie } from "nookies";
@@ -7,7 +6,6 @@ import { useToast } from "./use-toast";
 
 export const useLogin = () => {
   const { toast } = useToast();
-  const router = useRouter();
 
   const [formState, setFormState] = useState({
     email: "",
@@ -16,7 +14,7 @@ export const useLogin = () => {
     termsAccepted: false,
     isLoading: false,
   });
-
+  
   const handleInputChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const { name, value, type, checked } = e.target;
@@ -54,17 +52,17 @@ export const useLogin = () => {
           localStorage.setItem("refreshToken", refresh_token);
 
           setCookie(null, "authToken", access_token, {
-            maxAge: 900000,
+            maxAge: 15 * 60 * 1000,
             path: "/",
             secure: process.env.NODE_ENV === "production",
-            sameSite: "lax",
+            sameSite: "strict",
           });
 
           toast({
             title: "تم تسجيل الدخول بنجاح",
             description: "جاري تحويلك إلى لوحة التحكم...",
           });
-          router.push("/user");
+          window.location.href = "/user";
         }
       } catch (error) {
         let errorMessage = "فشل عملية تسجيل الدخول";
@@ -77,7 +75,7 @@ export const useLogin = () => {
         setFormState((prev) => ({ ...prev, isLoading: false }));
       }
     },
-    [formState, router, toast]
+    [formState, toast]
   );
 
   return {

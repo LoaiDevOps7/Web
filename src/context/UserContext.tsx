@@ -1,6 +1,12 @@
 "use client";
 
-import { createContext, useState, useEffect, ReactNode } from "react";
+import {
+  createContext,
+  useState,
+  useEffect,
+  ReactNode,
+  useCallback,
+} from "react";
 import axiosClient from "../lib/axiosClient";
 import { getUser } from "@/api/user";
 import { Bid } from "@/types/Bid";
@@ -56,38 +62,87 @@ const UserProvider: React.FC<UserProviderProps> = ({
   const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
-  useEffect(() => {
-    const fetchUser = async () => {
-      const storedUser = localStorage.getItem("user");
-      if (storedUser) {
-        setUser(JSON.parse(storedUser));
-        return;
-      }
+  const deleteAllCookies = () => {
+    const cookies = document.cookie.split(";");
+    const domainParts = window.location.hostname.split(".");
+    const mainDomain = domainParts.slice(-2).join(".");
 
-      try {
-        const response = await axiosClient.get<User>("/users/data");
-        setUser(response.data);
-        localStorage.setItem("user", JSON.stringify(response.data));
-      } catch (error) {
-        console.error("Failed to fetch user:", error);
-      }
-    };
+    cookies.forEach((cookie) => {
+      const eqPos = cookie.indexOf("=");
+      const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
 
-    fetchUser();
+      // حذف الكوكي لكل المسارات والدومينات الممكنة
+      document.cookie = `${name}=; Path=/; Domain=${mainDomain}; Expires=Thu, 01 Jan 1970 00:00:01 GMT;`;
+      document.cookie = `${name}=; Path=/; Domain=.${mainDomain}; Expires=Thu, 01 Jan 1970 00:00:01 GMT;`;
+      document.cookie = `${name}=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;`;
+    });
+  };
+
+  const fetchUserData = useCallback(async () => {
+    try {
+      const response = await axiosClient.get<User>("/users/data");
+      setUser(response.data);
+      localStorage.setItem("user", JSON.stringify(response.data));
+    } catch (error) {
+      console.error("Failed to fetch user:", error);
+      localStorage.removeItem("authToken");
+      localStorage.removeItem("user");
+    }
   }, []);
 
   useEffect(() => {
-    const fetchUser = async () => {
-      if (!user) return;
+    const storedUser = localStorage.getItem("user");
+    const authToken = localStorage.getItem("authToken");
+
+    if (storedUser && authToken) {
+      setUser(JSON.parse(storedUser));
+    } else if (authToken) {
+      fetchUserData();
+    }
+  }, [fetchUserData]);
+
+  useEffect(() => {
+    const checkTokenValidity = async () => {
+      const authToken = localStorage.getItem("authToken");
+      if (!authToken) return;
+
       try {
-        const response = await getUser(user?.sub);
-        setUserProfile(response);
+        await axiosClient.get("/auth/validate-token");
       } catch (error) {
-        console.error("Failed to fetch user:", error);
+        localStorage.clear();
+        deleteAllCookies();
+        setUser(null);
+        setUserProfile(null);
       }
     };
 
-    fetchUser();
+    checkTokenValidity();
+  }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const authToken = localStorage.getItem("authToken");
+      if (!authToken) {
+        setUser(null);
+        setUserProfile(null);
+      }
+    }, 300000); // كل 5 دقائق
+
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (!user?.sub) return;
+      try {
+        const response = await getUser(user.sub);
+        setUserProfile(response);
+      } catch (error) {
+        console.error("Failed to fetch user profile:", error);
+      }
+    };
+
+    fetchUserProfile();
   }, [user]);
 
   return (
