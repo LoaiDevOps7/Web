@@ -12,11 +12,14 @@ export const useLogout = () => {
     try {
       setIsLoading(true);
 
+      localStorage.removeItem("user");
+      localStorage.removeItem("refreshToken");
       localStorage.removeItem("authToken");
       document.cookie =
         "authToken=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
 
-      router.push("/sign-in");
+        window.location.reload();
+        router.push("/sign-in");
 
       toast({
         title: "تم تسجيل الخروج بنجاح",

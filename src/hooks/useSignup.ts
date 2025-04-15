@@ -141,9 +141,9 @@ export const useSignup = () => {
 
         toast({
           title: "تم التحقق بنجاح!",
-          description: "جاري تحويلك إلى لوحة التحكم...",
+          description: "جاري تحويلك إلى صفحة تسجيل الدخول...",
         });
-        router.push("/user");
+        router.push("/sign-in");
       } catch (error: any) {
         toast({
           variant: "destructive",
