@@ -3,8 +3,8 @@
 import * as React from "react";
 import { Notification } from "@/types/Notification";
 import { connectSocket } from "@/utils/socket";
-import { toast } from "sonner";
 import { UserContext } from "./UserContext";
+import { useToast } from "@/hooks/use-toast";
 
 type NotificationContextType = {
   publicNotifications: Notification[];
@@ -31,6 +31,7 @@ export const NotificationProvider = ({
 }: {
   children: React.ReactNode;
 }) => {
+  const { toast } = useToast();
   const { user } = React.useContext(UserContext) || {};
   const [publicNotifications, setPublicNotifications] = React.useState<
     Notification[]
@@ -97,22 +98,16 @@ export const NotificationProvider = ({
   };
 
   const clearNotifications = (type: "public" | "private") => {
-    toast("هل تريد مسح جميع الإشعارات؟", {
-      duration: 5000,
-      action: {
-        label: "نعم",
-        onClick: () => {
-          if (type === "public") {
-            localStorage.removeItem("publicNotifications");
-            setPublicNotifications([]);
-          } else {
-            localStorage.removeItem("privateNotifications");
-            setPrivateNotifications([]);
-          }
-          toast.success("تم مسح جميع الإشعارات");
-        },
-      },
-      cancel: { label: "لا", onClick: () => {} },
+    if (type === "public") {
+      localStorage.removeItem("publicNotifications");
+      setPublicNotifications([]);
+    } else {
+      localStorage.removeItem("privateNotifications");
+      setPrivateNotifications([]);
+    }
+    toast({
+      title: "تم المسح بنجاح",
+      description: "تم مسح جميع الإشعارات",
     });
   };
 
