@@ -12,12 +12,22 @@ export const useLogout = () => {
 
   const deleteAllCookies = () => {
     const cookies = document.cookie.split(";");
-    for (const cookie of cookies) {
+    const domainParts = window.location.hostname.split(".");
+    const mainDomain = domainParts.slice(-2).join(".");
+
+    cookies.forEach((cookie) => {
       const eqPos = cookie.indexOf("=");
-      const name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie;
-      document.cookie = `${name}=; Path=/; Domain=${window.location.hostname}; Expires=Thu, 01 Jan 1970 00:00:01 GMT;`;
-      document.cookie = `${name}=; Path=/; Domain=.${window.location.hostname}; Expires=Thu, 01 Jan 1970 00:00:01 GMT;`;
-    }
+      const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
+
+      // حذف جميع الإصدارات الممكنة للكوكي
+      [
+        `; Path=/; Domain=${mainDomain}`,
+        `; Path=/; Domain=.${mainDomain}`,
+        `; Path=/`,
+      ].forEach((attrs) => {
+        document.cookie = `${name}=; Expires=Thu, 01 Jan 1970 00:00:01 GMT${attrs}`;
+      });
+    });
   };
 
   const logout = useCallback(async () => {
@@ -25,9 +35,7 @@ export const useLogout = () => {
       setIsLoading(true);
 
       // إزالة بيانات التخزين المحلي
-      localStorage.removeItem("refreshToken");
-      localStorage.removeItem("authToken");
-      localStorage.removeItem("user");
+       localStorage.clear();
 
       deleteAllCookies();
 
@@ -38,13 +46,14 @@ export const useLogout = () => {
       }
 
       // إعادة التوجيه
-      router.push("/sign-in", { scroll: false });
-      window.location.href = "/sign-in";
+      window.location.href = `/sign-in?t=${Date.now()}`;
 
-      toast({
-        title: "تم تسجيل الخروج بنجاح",
-        description: "نراك قريباً!",
-      });
+      window.setTimeout(() => {
+        toast({
+          title: "تم تسجيل الخروج بنجاح",
+          description: "نراك قريباً!",
+        });
+      }, 500);
     } catch (error) {
       toast({
         variant: "destructive",
@@ -54,7 +63,7 @@ export const useLogout = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [router, toast, userContext]);
+  }, [toast, userContext]);
 
   return { isLoading, logout };
 };
