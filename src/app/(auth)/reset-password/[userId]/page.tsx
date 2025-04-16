@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
@@ -10,9 +10,13 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function ResetPasswordPage() {
   const { toast } = useToast();
-   const router = useRouter();
-   const params = useParams();
-   const userIdParam = params.userId;
+  const router = useRouter();
+  const params = useParams();
+  const searchParams = useSearchParams();
+  const userIdParam = params.userId;
+  const isValidParam = searchParams.get("valid");
+
+  const [validUserId, setValidUserId] = useState<number | null>(null);
 
   const {
     formState,
@@ -20,17 +24,13 @@ export default function ResetPasswordPage() {
     handleResetPassword,
     toggleShowPassword,
     toggleShowConfirmPassword,
-  } = useResetPassword();
+  } = useResetPassword(validUserId);
 
-   useEffect(() => {
-    if (formState.passwordMatchError) {
-      toast({
-        variant: "destructive",
-        title: "خطأ في المدخلات",
-        description: "كلمات المرور غير متطابقة",
-      });
+  useEffect(() => {
+    if (isValidParam !== "true") {
+      router.push("/forgot-password");
     }
-  }, [formState.passwordMatchError, toast]);
+  }, [isValidParam, router]);
 
   useEffect(() => {
     const validateUserId = () => {
@@ -40,13 +40,23 @@ export default function ResetPasswordPage() {
       }
 
       const userId = Number(userIdParam);
-      if (isNaN(userId)) {
+      if (isNaN(userId) || userId <= 0) {
         router.push("/forgot-password");
+      } else {
+        setValidUserId(userId);
       }
     };
 
     validateUserId();
   }, [userIdParam, router]);
+
+  if (validUserId === null) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4">
@@ -69,7 +79,10 @@ export default function ResetPasswordPage() {
             </p>
           </div>
 
-          <form className="space-y-4" onSubmit={handleResetPassword}>
+          <form
+            className="space-y-4"
+            onSubmit={handleResetPassword}
+          >
             <div className="relative">
               <input
                 required
@@ -107,7 +120,7 @@ export default function ResetPasswordPage() {
                 onClick={toggleShowConfirmPassword}
                 className="absolute inset-y-0 right-8 pr-3 flex items-center text-gray-600"
               >
-                {formState.showPassword ? (
+                {formState.showConfirmPassword ? (
                   <FaEyeSlash className="text-gray-500 hover:text-gray-600" />
                 ) : (
                   <FaEye className="text-gray-500 hover:text-gray-600" />

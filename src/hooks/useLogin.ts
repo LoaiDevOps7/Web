@@ -3,6 +3,7 @@ import { loginSchema } from "@/utils/validation";
 import { login } from "@/api/auth";
 import { setCookie } from "nookies";
 import { useToast } from "./use-toast";
+import { ValidationError } from "yup";
 
 export const useLogin = () => {
   const { toast } = useToast();
@@ -64,8 +65,17 @@ export const useLogin = () => {
           });
           window.location.href = "/user";
         }
-      } catch (error) {
+      } catch (error: any) {
         let errorMessage = "فشل عملية تسجيل الدخول";
+        // معالجة أخطاء التحقق من Yup
+        if (error instanceof ValidationError) {
+          errorMessage = error.errors.join("، ");
+        }
+        // معالجة أخطاء الشبكة
+        else if (error.message) {
+          errorMessage = error.message;
+        }
+        
         toast({
           variant: "destructive",
           title: "خطأ في التسجيل",

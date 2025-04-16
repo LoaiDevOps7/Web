@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { registerSchema } from "../utils/validation";
 import { debounce } from "lodash";
 import { useToast } from "@/hooks/use-toast";
+import { ValidationError } from "yup";
 
 export const useSignup = () => {
   const { toast } = useToast();
@@ -114,14 +115,28 @@ export const useSignup = () => {
           description: "تفقد بريدك الإلكتروني لإكمال التحقق",
         });
       } catch (error: any) {
+        let errorMessage = "حدث خطأ. يرجى المحاولة مرة أخرى لاحقا";
+
+        // معالجة أخطاء التحقق من Yup
+        if (error instanceof ValidationError) {
+          errorMessage = error.errors.join("، ");
+        }
+        // معالجة أخطاء API
+        else if (error?.response?.data?.message) {
+          errorMessage = error.response.data.message;
+        }
+        // معالجة أخطاء الشبكة
+        else if (error.message) {
+          errorMessage = error.message;
+        }
+
         toast({
           variant: "destructive",
-          title: "خطأ في التسجيل",
-          description:
-            error.message || "حدث خطأ غير متوقع، يرجى المحاولة لاحقًا",
+          title: "فشل العملية",
+          description: errorMessage,
         });
       } finally {
-        setUIState((prev) => ({ ...prev, isLoading: false }));
+        setUIState((prev) => ({ ...prev, isCodeSent: false }));
       }
     },
     [formState, toast, validationSchema]
@@ -145,10 +160,25 @@ export const useSignup = () => {
         });
         router.push("/sign-in");
       } catch (error: any) {
+        let errorMessage = "حدث خطأ. يرجى المحاولة مرة أخرى لاحقا";
+
+        // معالجة أخطاء التحقق من Yup
+        if (error instanceof ValidationError) {
+          errorMessage = error.errors.join("، ");
+        }
+        // معالجة أخطاء API
+        else if (error?.response?.data?.message) {
+          errorMessage = error.response.data.message;
+        }
+        // معالجة أخطاء الشبكة
+        else if (error.message) {
+          errorMessage = error.message;
+        }
+
         toast({
           variant: "destructive",
-          title: "فشل التحقق",
-          description: error.message || "رمز التحقق غير صحيح أو منتهي الصلاحية",
+          title: "فشل العملية",
+          description: errorMessage,
         });
       } finally {
         setUIState((prev) => ({ ...prev, isLoading: false }));
@@ -164,20 +194,35 @@ export const useSignup = () => {
         if (!formState.email) {
         throw new Error("لم يتم إرسال الرمز مسبقاً");
       }
-        setUIState((prev) => ({ ...prev, isLoading: true }));
+        setUIState((prev) => ({ ...prev, isCodeSent: true }));
         await resendVerification(formState.email);
         toast({
           title: "تم إعادة الإرسال",
           description: "تفقد بريدك الإلكتروني للحصول على الرمز الجديد",
         });
       } catch (error: any) {
-        toast({
-          variant: "destructive",
-          title: "فشل إعادة الإرسال",
-          description: error.message || "يرجى المحاولة مرة أخرى بعد قليل",
-        });
+       let errorMessage = "حدث خطأ. يرجى المحاولة مرة أخرى لاحقا";
+
+       // معالجة أخطاء التحقق من Yup
+       if (error instanceof ValidationError) {
+         errorMessage = error.errors.join("، ");
+       }
+       // معالجة أخطاء API
+       else if (error?.response?.data?.message) {
+         errorMessage = error.response.data.message;
+       }
+       // معالجة أخطاء الشبكة
+       else if (error.message) {
+         errorMessage = error.message;
+       }
+
+       toast({
+         variant: "destructive",
+         title: "فشل العملية",
+         description: errorMessage,
+       });
       } finally {
-        setUIState((prev) => ({ ...prev, isLoading: false }));
+        setUIState((prev) => ({ ...prev, isCodeSent: false }));
       }
     },
     [formState.email, toast]

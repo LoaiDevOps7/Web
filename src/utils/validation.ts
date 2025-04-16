@@ -7,39 +7,39 @@ const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 export const loginSchema = yup.object().shape({
   email: yup
     .string()
-    .matches(emailRegex, "Please enter a valid email address (e.g., example@domain.com)")
-    .required("Email is required"),
+    .matches(emailRegex, "يرجى إدخال عنوان بريد إلكتروني صالح (على سبيل المثال ، example@domain.com)")
+    .required("البريد الإلكتروني مطلوب"),
   password: yup
     .string()
-    .min(8, "Password must be at least 8 characters")
-    .required("Password is required"),
+    .min(8, "يجب أن تتكون كلمة المرور من 8 أحرف على الأقل")
+    .required("كلمة المرور مطلوبة"),
   termsAccepted: yup
     .boolean()
-    .oneOf([true], "You must accept the terms and conditions")
-    .required("You must accept the terms and conditions"),
+    .oneOf([true], "يجب عليك قبول الشروط والأحكام")
+    .required("يجب عليك قبول الشروط والأحكام"),
 });
 
 export const registerSchema = yup.object().shape({
   email: yup
     .string()
-    .matches(emailRegex, "Please enter a valid email address (e.g., example@domain.com)")
-    .required("Email is required"),
+    .matches(emailRegex, "يرجى إدخال عنوان بريد إلكتروني صالح (على سبيل المثال ، example@domain.com)")
+    .required("البريد الإلكتروني مطلوب"),
   password: yup
     .string()
-    .min(8, "Password must be at least 8 characters")
+    .min(8, "يجب أن تتكون كلمة المرور من 8 أحرف على الأقل")
     .matches(
       passwordRegex,
-      "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character"
+      "يجب أن تحتوي كلمة المرور على حرف كبير واحد على الأقل وحرف صغير واحد ورقم واحد وحرف خاص واحد"
     )
-    .required("Password is required"),
+    .required("كلمة المرور مطلوبة"),
   confirmPassword: yup
     .string()
-    .oneOf([yup.ref("password")], "Passwords must match")
-    .required("Confirm Password is required"),
+    .oneOf([yup.ref("password")], "يجب أن تتطابق كلمات المرور")
+    .required("تأكيد كلمة المرور مطلوبة"),
   termsAccepted: yup
     .boolean()
-    .oneOf([true], "You must accept the terms and conditions")
-    .required("You must accept the terms and conditions"),
+    .oneOf([true], "يجب عليك قبول الشروط والأحكام")
+    .required("يجب عليك قبول الشروط والأحكام"),
 });
 
 export const forgotPasswordSchema = yup.object().shape({
@@ -47,22 +47,22 @@ export const forgotPasswordSchema = yup.object().shape({
     .string()
     .matches(
       emailRegex,
-      "Please enter a valid email address (e.g., example@domain.com)"
+      "يرجى إدخال عنوان بريد إلكتروني صالح (على سبيل المثال ، example@domain.com)"
     )
-    .required("Email is required"),
+    .required("البريد الإلكتروني مطلوب"),
 });
 
 export const resetPasswordSchema = yup.object().shape({
   newPassword: yup
     .string()
-    .min(8, "Password must be at least 8 characters")
+    .min(8, "يجب أن تتكون كلمة المرور من 8 أحرف على الأقل")
     .matches(
       passwordRegex,
-      "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character"
+      "يجب أن تحتوي كلمة المرور على حرف كبير واحد على الأقل وحرف صغير واحد ورقم واحد وحرف خاص واحد"
     )
-    .required("Password is required"),
+    .required("كلمة المرور مطلوبة"),
   confirmPassword: yup
     .string()
-    .oneOf([yup.ref("newPassword")], "Passwords must match")
-    .required("Confirm Password is required"),
+    .oneOf([yup.ref("newPassword")], "يجب أن تتطابق كلمات المرور")
+    .required("تأكيد كلمة المرور مطلوبة"),
 });

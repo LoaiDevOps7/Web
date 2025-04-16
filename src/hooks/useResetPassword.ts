@@ -3,42 +3,38 @@ import { resetPassword } from "../api/auth";
 import { useRouter } from "next/navigation";
 import { resetPasswordSchema } from "../utils/validation";
 import { useToast } from "./use-toast";
+import { ValidationError } from "yup";
 
-export const useResetPassword = () => {
+export const useResetPassword = (userId: number | null) => {
   const { toast } = useToast();
   const router = useRouter();
 
- const [formState, setFormState] = useState({
-   userId: null as number | null,
-   newPassword: "",
-   confirmPassword: "",
-   showPassword: false,
-   showConfirmPassword: false,
-   isLoading: false,
-   passwordMatchError: false,
- });
+  const [formState, setFormState] = useState({
+    userId: userId,
+    newPassword: "",
+    confirmPassword: "",
+    showPassword: false,
+    showConfirmPassword: false,
+    isLoading: false,
+  });
 
   useEffect(() => {
-    const storedUserId = sessionStorage.getItem("userId");
-    if (storedUserId) {
-      setFormState((prev) => ({
-        ...prev,
-        userId: parseInt(storedUserId, 10) || null,
-      }));
-    }
-  }, []);
-
-  useEffect(() => {
-    const match =
-      formState.newPassword === formState.confirmPassword &&
-      formState.confirmPassword.length > 0;
-
     setFormState((prev) => ({
       ...prev,
-      passwordMatchError: !match,
+      userId: userId,
     }));
-  }, [formState.newPassword, formState.confirmPassword]);
+  }, [userId]);
 
+  useEffect(() => {
+    if (userId !== null) {
+      setFormState((prev) => ({
+        ...prev,
+        userId: userId,
+        newPassword: "",
+        confirmPassword: "",
+      }));
+    }
+  }, [userId]);
 
   const handleInputChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -48,36 +44,36 @@ export const useResetPassword = () => {
     []
   );
 
-   const toggleShowPassword = useCallback(() => {
-     setFormState((prev) => ({
-       ...prev,
-       showPassword: !prev.showPassword,
-     }));
-   }, []);
+  const toggleShowPassword = useCallback(() => {
+    setFormState((prev) => ({
+      ...prev,
+      showPassword: !prev.showPassword,
+    }));
+  }, []);
 
-   const toggleShowConfirmPassword = useCallback(() => {
-     setFormState((prev) => ({
-       ...prev,
-       showConfirmPassword: !prev.showConfirmPassword,
-     }));
-   }, []);
+  const toggleShowConfirmPassword = useCallback(() => {
+    setFormState((prev) => ({
+      ...prev,
+      showConfirmPassword: !prev.showConfirmPassword,
+    }));
+  }, []);
 
   const handleResetPassword = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
 
-      if (!formState.userId) {
-        toast({
-          variant: "destructive",
-          title: "خطأ في المصادقة",
-          description: "الجلسة منتهية، يرجى طلب رمز جديد",
-        });
-        return router.push("/forgot-password");
-      }
-
       try {
         setFormState((prev) => ({ ...prev, isLoading: true }));
 
+        if (!formState.userId) {
+          toast({
+            variant: "destructive",
+            title: "خطأ في المصادقة",
+            description: "الجلسة منتهية، يرجى طلب رمز جديد",
+          });
+          return router.push("/forgot-password");
+        }
+        
         await resetPasswordSchema.validate(
           {
             newPassword: formState.newPassword,
@@ -92,15 +88,29 @@ export const useResetPassword = () => {
           title: "تم التحديث بنجاح",
           description: "جاري تحويلك إلى لوحة التحكم...",
         });
-        localStorage.removeItem("userId");
+
         router.push("/user");
       } catch (error: any) {
-        let errorMessage = "فشل في تحديث كلمة المرور، يرجى المحاولة لاحقًا";
-        toast({
-          variant: "destructive",
-          title: "فشل العملية",
-          description: errorMessage,
-        });
+          let errorMessage = "فشل في تحديث كلمة المرور، يرجى المحاولة لاحقًا";
+
+          // معالجة أخطاء التحقق من Yup
+          if (error instanceof ValidationError) {
+            errorMessage = error.errors.join("، ");
+          }
+          // معالجة أخطاء API
+          else if (error?.response?.data?.message) {
+            errorMessage = error.response.data.message;
+          }
+          // معالجة أخطاء الشبكة
+          else if (error.message) {
+            errorMessage = error.message;
+          }
+
+          toast({
+            variant: "destructive",
+            title: "فشل العملية",
+            description: errorMessage,
+          });
       } finally {
         setFormState((prev) => ({ ...prev, isLoading: false }));
       }

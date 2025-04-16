@@ -3,6 +3,7 @@ import { forgotPassword, verifyResetCode } from "../api/auth";
 import { forgotPasswordSchema } from "../utils/validation";
 import { useRouter } from "next/navigation";
 import { useToast } from "./use-toast";
+import { ValidationError } from "yup";
 
 export const useForgotPassword = () => {
   const { toast } = useToast();
@@ -11,6 +12,7 @@ export const useForgotPassword = () => {
   const [formState, setFormState] = useState({
     email: "",
     resetCode: "",
+    userId: null as number | null,
     isLoading: false,
     isCodeLoading: false,
   });
@@ -40,61 +42,91 @@ export const useForgotPassword = () => {
         const response = await forgotPassword(formState.email);
 
         if (response?.userId) {
-          localStorage.setItem("userId", response.userId.toString());
+          setFormState((prev) => ({
+            ...prev,
+            userId: response.userId,
+          }));
+
           toast({
             title: "تم الإرسال بنجاح",
-            description:
-              "تم إرسال البريد الإلكتروني لإعادة تعيين كلمة المرور بنجاح",
+            description: "تم إرسال رمز التحقق إلى بريدك الإلكتروني",
           });
         }
       } catch (error: any) {
+        let errorMessage = "حدث خطأ. يرجى المحاولة مرة أخرى لاحقا";
+
+        // معالجة أخطاء التحقق من Yup
+        if (error instanceof ValidationError) {
+          errorMessage = error.errors.join("، ");
+        }
+        // معالجة أخطاء API
+        else if (error?.response?.data?.message) {
+          errorMessage = error.response.data.message;
+        }
+        // معالجة أخطاء الشبكة
+        else if (error.message) {
+          errorMessage = error.message;
+        }
         toast({
           variant: "destructive",
-          title: "خطأ في الإرسال",
-          description: "حدث خطأ. يرجى المحاولة مرة أخرى لاحقا",
+          title: "فشل العملية",
+          description: errorMessage,
         });
       } finally {
         setFormState((prev) => ({ ...prev, isLoading: false }));
       }
     },
-    [formState, router, toast]
+    [formState, toast]
   );
 
   const handleVerifyResetCode = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
       try {
-        setFormState((prev) => ({ ...prev, isCodeLoading: true }));
-
-        const storedUserId = localStorage.getItem("userId");
-        if (!storedUserId) {
+        if (!formState.userId) {
           toast({
             variant: "destructive",
             title: "خطأ في التحقق",
-            description:
-              "لم يتم العثور على معرف المستخدم. يرجى طلب إعادة تعيين الرمز مرة أخرى",
+            description: "لم يتم العثور على مستخدم صالح",
           });
+          return;
         }
-        const userId = Number(storedUserId);
 
-        await verifyResetCode(userId, formState.resetCode);
+        setFormState((prev) => ({ ...prev, isCodeLoading: true }));
+
+        await verifyResetCode(formState.userId, formState.resetCode);
 
         toast({
           title: "تم التحقق بنجاح",
           description: "جاري تحويلك إلى صفحة إعادة التعيين...",
         });
-        router.push(`/reset-password/${userId}`);
+        router.push(`/reset-password/${formState.userId}?valid=true`);
       } catch (error: any) {
+        let errorMessage = "حدث خطأ. يرجى المحاولة مرة أخرى لاحقا";
+        
+        // معالجة أخطاء التحقق من Yup
+        if (error instanceof ValidationError) {
+          errorMessage = error.errors.join("، ");
+        }
+        // معالجة أخطاء API
+        else if (error?.response?.data?.message) {
+          errorMessage = error.response.data.message;
+        }
+        // معالجة أخطاء الشبكة
+        else if (error.message) {
+          errorMessage = error.message;
+        }
+
         toast({
           variant: "destructive",
-          title: "فشل التحقق",
-          description: "حدث خطأ. يرجى المحاولة مرة أخرى لاحقا",
+          title: "فشل العملية",
+          description: errorMessage,
         });
       } finally {
-        setFormState((prev) => ({ ...prev, isLoading: false }));
+        setFormState((prev) => ({ ...prev, isCodeLoading: false }));
       }
     },
-    [formState.resetCode, router, toast]
+    [formState.userId, formState.resetCode, router, toast]
   );
 
   return {

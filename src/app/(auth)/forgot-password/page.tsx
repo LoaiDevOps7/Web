@@ -60,8 +60,11 @@ export default function ForgotPasswordPage() {
                 type="button"
                 onClick={handleForgotPassword}
                 disabled={formState.isLoading}
-                className="w-full sm:w-auto text-gray-600 border border-lamagreen px-4 py-2 rounded-lg hover:bg-green-500 transition-colors duration-200 whitespace-nowrap min-w-[120px] sm:min-w-[160px] text-sm sm:text-base"
+                className="w-full sm:w-auto text-gray-600 border border-lamagreen px-4 py-2 rounded-lg hover:bg-green-500 transition-colors duration-200 whitespace-nowrap min-w-[120px] sm:min-w-[160px] text-sm sm:text-base flex justify-center items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
               >
+                {formState.isLoading && (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                )}
                 {formState.isLoading ? "انتظر..." : "إرسال الكود"}
               </button>
             </div>
@@ -70,8 +73,11 @@ export default function ForgotPasswordPage() {
               type="button"
               onClick={handleVerifyResetCode}
               disabled={formState.isCodeLoading}
-              className="w-full bg-lamagreen text-white py-2.5 rounded-lg hover:bg-green-500 transition-colors duration-200"
+              className="w-full bg-lamagreen text-white py-2.5 rounded-lg hover:bg-green-500 transition-colors duration-200 flex justify-center items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
             >
+              {formState.isCodeLoading && (
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              )}
               {formState.isCodeLoading ? "جاري التحقق..." : "استمر"}
             </button>
           </form>
