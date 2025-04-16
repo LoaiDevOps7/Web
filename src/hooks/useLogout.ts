@@ -1,12 +1,10 @@
 import { useCallback, useContext, useState } from "react";
-import { useRouter } from "next/navigation";
 import { useToast } from "./use-toast";
 import { UserContext } from "@/context/UserContext";
 
 export const useLogout = () => {
   const userContext = useContext(UserContext);
   const { toast } = useToast();
-  const router = useRouter();
 
   const [isLoading, setIsLoading] = useState(false);
 
@@ -35,7 +33,7 @@ export const useLogout = () => {
       setIsLoading(true);
 
       // إزالة بيانات التخزين المحلي
-       localStorage.clear();
+      localStorage.clear();
 
       deleteAllCookies();
 

@@ -59,6 +59,13 @@ export const useLogin = () => {
             sameSite: "strict",
           });
 
+          setCookie(null, "authToken", refresh_token, {
+            maxAge: 15 * 60 * 1000,
+            path: "/",
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "strict",
+          });
+
           toast({
             title: "تم تسجيل الدخول بنجاح",
             description: "جاري تحويلك إلى لوحة التحكم...",
