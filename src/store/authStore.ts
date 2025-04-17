@@ -15,11 +15,14 @@ export const useAuthStore = create<AuthState>((set) => ({
   token: null,
 
   setToken: (newToken) => {
+     const isProduction = process.env.NODE_ENV === "production";
+     const domain = isProduction ? ".railway.app" : "localhost";
     set({ token: newToken });
     setCookie("authToken", newToken, {
       path: "/",
+      secure: isProduction,
       sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
+      domain: domain,
     });
   },
 

@@ -30,8 +30,10 @@ export function middleware(request: NextRequest) {
 
   // إذا لم يكن مسجل الدخول وحاول الوصول إلى صفحة محمية
   if (!authToken && !publicRoutes.includes(pathname)) {
+    const decodedPath = decodeURIComponent(pathname); // فك الترميز أولاً
+    const encodedRedirect = encodeURIComponent(decodedPath); // ترميز مرة واحدة
     return NextResponse.redirect(
-      new URL(`/sign-in?redirect=${pathname}`, request.url)
+      new URL(`/sign-in?redirect=${encodedRedirect}`, request.url)
     );
   }
 

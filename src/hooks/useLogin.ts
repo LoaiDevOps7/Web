@@ -43,13 +43,18 @@ export const useLogin = () => {
 
       try {
         await loginSchema.validate(formState, { abortEarly: false });
-        await login(formState.email, formState.password);
+        const response = await login(formState.email, formState.password);
+
+        useAuthStore.getState().setToken(response.token);
+
+        await new Promise((resolve) => setTimeout(resolve, 500));
 
         toast({
           title: "تم تسجيل الدخول بنجاح",
           description: "جاري تحويلك إلى لوحة التحكم...",
         });
-        router.push("/user");
+
+        window.location.href = "/user";
       } catch (error: any) {
         let errorMessage = "فشل عملية تسجيل الدخول";
         // معالجة أخطاء التحقق من Yup
@@ -70,7 +75,7 @@ export const useLogin = () => {
         setFormState((prev) => ({ ...prev, isLoading: false }));
       }
     },
-    [formState, toast, router]
+    [formState, toast]
   );
 
   return {
