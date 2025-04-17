@@ -15,20 +15,37 @@ export const useAuthStore = create<AuthState>((set) => ({
   token: null,
 
   setToken: (newToken) => {
-     const isProduction = process.env.NODE_ENV === "production";
-     const domain = isProduction ? ".railway.app" : "localhost";
+    const isProduction = process.env.NODE_ENV === "production";
+
+    // إعدادات الكوكي حسب البيئة
+    const cookieOptions = isProduction
+      ? {
+          path: "/",
+          secure: true, // مطلوب لـ SameSite=None
+          ssameSite: "none" as const, // للسماح عبر النطاقات
+          // لا نحدد domain هنا
+        }
+      : {
+          path: "/",
+          secure: false, // غير مطلوب في التطوير
+          sameSite: "lax" as const,
+          domain: "localhost",
+        };
+
     set({ token: newToken });
-    setCookie("authToken", newToken, {
-      path: "/",
-      secure: isProduction,
-      sameSite: "lax",
-      domain: domain,
-    });
+    setCookie("authToken", newToken, cookieOptions);
   },
 
   clearToken: () => {
+    const isProduction = process.env.NODE_ENV === "production";
+
     set({ token: null });
-    setCookie("authToken", "", { maxAge: -1 });
+    setCookie("authToken", "", {
+      path: "/",
+      secure: isProduction,
+      sameSite: isProduction ? "none" : "lax",
+      maxAge: -1,
+    });
   },
 
   initialize: async () => {
