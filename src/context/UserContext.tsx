@@ -6,10 +6,23 @@ import {
   useEffect,
   ReactNode,
   useCallback,
+  useMemo,
 } from "react";
 import axiosClient from "../lib/axiosClient";
 import { getUser } from "@/api/user";
 import { Bid } from "@/types/Bid";
+import { useAuthStore } from "@/store/authStore";
+import { jwtDecode } from "jwt-decode";
+import { useToast } from "@/hooks/use-toast";
+import { useRouter } from "next/navigation";
+
+export interface JwtPayload {
+  sub: number;
+  email: string;
+  roles: string[];
+  exp?: number;
+  iat?: number;
+}
 
 // تعريف نوع بيانات المستخدم
 export interface User {
@@ -43,6 +56,7 @@ interface UserContextType {
   userProfile: UserProfile | null;
   setUserProfile: (userProfile: UserProfile | null) => void;
   user: User | null;
+  isLoading: boolean;
   setUser: (user: User | null) => void;
 }
 
@@ -59,98 +73,173 @@ interface UserProviderProps {
 const UserProvider: React.FC<UserProviderProps> = ({
   children,
 }): JSX.Element => {
+  const { toast } = useToast();
+   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const deleteAllCookies = () => {
-    const cookies = document.cookie.split(";");
-    const domainParts = window.location.hostname.split(".");
-    const mainDomain = domainParts.slice(-2).join(".");
+  const { token, clearToken } = useAuthStore();
 
-    cookies.forEach((cookie) => {
-      const eqPos = cookie.indexOf("=");
-      const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
+  const deleteAllCookies = useCallback(() => {
+    const hostParts = window.location.hostname.split(".");
+    const domains = [
+      window.location.hostname,
+      `.${hostParts.slice(-2).join(".")}`,
+      "",
+    ];
 
-      // حذف الكوكي لكل المسارات والدومينات الممكنة
-      document.cookie = `${name}=; Path=/; Domain=${mainDomain}; Expires=Thu, 01 Jan 1970 00:00:01 GMT;`;
-      document.cookie = `${name}=; Path=/; Domain=.${mainDomain}; Expires=Thu, 01 Jan 1970 00:00:01 GMT;`;
-      document.cookie = `${name}=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;`;
+    domains.forEach((domain) => {
+      document.cookie = `authToken=; Path=/; Domain=${domain}; Expires=Thu, 01 Jan 1970 00:00:00 GMT;`;
+      document.cookie = `refreshToken=; Path=/; Domain=${domain}; Expires=Thu, 01 Jan 1970 00:00:00 GMT;`;
     });
-  };
+  }, []);
+
+  const handleLogout = useCallback(async () => {
+    try {
+      await axiosClient.post("/auth/logout");
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
+      clearToken();
+      deleteAllCookies();
+      setUser(null);
+      setUserProfile(null);
+      router.push("/sign-in");
+    }
+  }, [clearToken, deleteAllCookies, router]);
+
+   useEffect(() => {
+     const parseToken = () => {
+       if (!token) {
+         setUser(null);
+         return;
+       }
+
+       try {
+         const decoded = jwtDecode<JwtPayload>(token);
+         if (decoded.exp && decoded.exp * 1000 < Date.now()) {
+           handleLogout();
+           return;
+         }
+
+         setUser({
+           sub: decoded.sub,
+           email: decoded.email,
+           roles: decoded.roles,
+         });
+       } catch (error) {
+         console.error("Invalid token:", error);
+         toast({
+           variant: "destructive",
+           title: "خطأ في المصادقة",
+           description: "رمز المصادقة غير الصالح.",
+         });
+         handleLogout();
+       }
+     };
+
+     parseToken();
+   }, [token, handleLogout, toast]);
+
+  useEffect(() => {
+    const interceptor = axiosClient.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (error.response?.status === 401) {
+          handleLogout();
+        }
+        return Promise.reject(error);
+      }
+    );
+
+    return () => {
+      axiosClient.interceptors.response.eject(interceptor);
+    };
+  }, [handleLogout]);
 
   const fetchUserData = useCallback(async () => {
+    setIsLoading(true);
     try {
       const response = await axiosClient.get<User>("/users/data");
       setUser(response.data);
-      localStorage.setItem("user", JSON.stringify(response.data));
     } catch (error) {
       console.error("Failed to fetch user:", error);
-      localStorage.removeItem("authToken");
-      localStorage.removeItem("user");
+       toast({
+         variant: "destructive",
+         title: "خطأ في البيانات",
+         description: "فشل جلب بيانات المستخدم. يرجى المحاولة مرة أخرى.",
+       });
+      handleLogout();
+    } finally {
+      setIsLoading(false);
     }
-  }, []);
+  }, [handleLogout, toast]);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    const authToken = localStorage.getItem("authToken");
-
-    if (storedUser && authToken) {
-      setUser(JSON.parse(storedUser));
-    } else if (authToken) {
-      fetchUserData();
-    }
-  }, [fetchUserData]);
-
-  useEffect(() => {
-    const checkTokenValidity = async () => {
-      const authToken = localStorage.getItem("authToken");
-      if (!authToken) return;
+    const checkAuthState = async () => {
+      if (!token) {
+        setIsLoading(false);
+        return;
+      }
 
       try {
         await axiosClient.get("/auth/validate-token");
+        await fetchUserData();
       } catch (error) {
-        localStorage.clear();
-        deleteAllCookies();
-        setUser(null);
-        setUserProfile(null);
+        toast({
+          variant: "destructive",
+          title: "خطأ في الجلسة",
+          description:
+            "فشل في التحقق من صحة الجلسة. يرجى تسجيل الدخول مرة أخرى.",
+        });
+        handleLogout();
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    checkTokenValidity();
-  }, []);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const authToken = localStorage.getItem("authToken");
-      if (!authToken) {
-        setUser(null);
-        setUserProfile(null);
-      }
-    }, 300000); // كل 5 دقائق
-
-    return () => clearInterval(interval);
-  }, []);
+    checkAuthState();
+  }, [token, fetchUserData, handleLogout, toast]);
 
   useEffect(() => {
     const fetchUserProfile = async () => {
       if (!user?.sub) return;
+
+      setIsLoading(true);
       try {
         const response = await getUser(user.sub);
         setUserProfile(response);
       } catch (error) {
         console.error("Failed to fetch user profile:", error);
+        toast({
+          variant: "destructive",
+          title: "خطأ في الملف الشخصي",
+          description: "فشل تحميل ملف تعريف المستخدم. اعاده المحاوله...",
+        });
+        setTimeout(fetchUserProfile, 5000);
+      } finally {
+        setIsLoading(false);
       }
     };
 
     fetchUserProfile();
-  }, [user]);
+  }, [user?.sub, toast]);
+
+  const contextValue = useMemo(
+    () => ({
+      user,
+      setUser,
+      userProfile,
+      setUserProfile,
+      isLoading,
+    }),
+    [user, userProfile, isLoading]
+  );
+
 
   return (
-    <UserContext.Provider
-      value={{ user, setUser, userProfile, setUserProfile }}
-    >
-      {children}
-    </UserContext.Provider>
+    <UserContext.Provider value={contextValue}>{children}</UserContext.Provider>
   );
 };
 

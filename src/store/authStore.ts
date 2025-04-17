@@ -1,24 +1,56 @@
 import { create } from "zustand";
+import axiosClient from "@/lib/axiosClient";
+import { jwtDecode } from "jwt-decode";
+import { JwtPayload } from "@/context/UserContext";
+import { setCookie } from "cookies-next";
 
-// تعريف نوع بيانات حالة التوكن
 interface AuthState {
   token: string | null;
   setToken: (token: string) => void;
   clearToken: () => void;
+  initialize: () => Promise<void>;
 }
 
-// إنشاء Zustand store مع تحديد الأنواع
 export const useAuthStore = create<AuthState>((set) => ({
-  token:
-    typeof window !== "undefined" ? localStorage.getItem("authToken") : null,
+  token: null,
 
   setToken: (newToken) => {
-    localStorage.setItem("authToken", newToken);
     set({ token: newToken });
+    setCookie("authToken", newToken, {
+      path: "/",
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+    });
   },
 
   clearToken: () => {
-    localStorage.removeItem("authToken");
     set({ token: null });
+    setCookie("authToken", "", { maxAge: -1 });
+  },
+
+  initialize: async () => {
+    try {
+      const cookies = document.cookie.split("; ");
+      const authTokenCookie = cookies.find((cookie) =>
+        cookie.startsWith("authToken=")
+      );
+
+      if (authTokenCookie) {
+        const tokenValue = authTokenCookie.split("=")[1];
+        const decoded = jwtDecode<JwtPayload>(tokenValue);
+
+        // تحقق من صلاحية التوكن
+        if (decoded.exp && decoded.exp * 1000 > Date.now()) {
+          // إذا كان التوكن صالحًا، لا حاجة لطلب توكن جديد
+          set({ token: tokenValue });
+        } else {
+          // إذا كان التوكن غير صالح، قم بطلب تجديد التوكن
+          const { data } = await axiosClient.post("/auth/refresh-token");
+          set({ token: data.access_token });
+        }
+      }
+    } catch {
+      set({ token: null });
+    }
   },
 }));

@@ -15,30 +15,24 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-   if (pathname === "/") {
-     return NextResponse.next();
-   }
+  if (pathname === "/") {
+    return NextResponse.next();
+  }
 
   if (pathname.startsWith("/reset-password/")) {
     return NextResponse.next();
   }
 
-  if (publicRoutes.includes(pathname)) {
-    if (authToken) {
-      return NextResponse.redirect(new URL("/user", request.url));
-    }
-    return NextResponse.next();
+  // إذا كان المستخدم مسجل الدخول وحاول الوصول إلى صفحة تسجيل الدخول
+  if (publicRoutes.includes(pathname) && authToken) {
+    return NextResponse.redirect(new URL("/user", request.url));
   }
 
-  if (!authToken) {
-    if (pathname !== "/sign-in") {
-      return NextResponse.redirect(
-        new URL(
-          `/sign-in?redirect=${encodeURIComponent(pathname)}`,
-          request.url,
-        ),
-      );
-    }
+  // إذا لم يكن مسجل الدخول وحاول الوصول إلى صفحة محمية
+  if (!authToken && !publicRoutes.includes(pathname)) {
+    return NextResponse.redirect(
+      new URL(`/sign-in?redirect=${pathname}`, request.url)
+    );
   }
 
   return NextResponse.next();

@@ -1,57 +1,52 @@
 import { useCallback, useContext, useState } from "react";
 import { useToast } from "./use-toast";
 import { UserContext } from "@/context/UserContext";
+import { useAuthStore } from "@/store/authStore";
 
 export const useLogout = () => {
   const userContext = useContext(UserContext);
   const { toast } = useToast();
 
+  const clearToken = useAuthStore((state) => state.clearToken);
+  const setUser = userContext?.setUser;
+  const setUserProfile = userContext?.setUserProfile;
+
   const [isLoading, setIsLoading] = useState(false);
 
-  const deleteAllCookies = () => {
-    const cookies = document.cookie.split(";");
-    const domainParts = window.location.hostname.split(".");
-    const mainDomain = domainParts.slice(-2).join(".");
+  const deleteAllCookies = useCallback(() => {
+    const hostParts = window.location.hostname.split(".");
+    const domains = [
+      window.location.hostname,
+      `.${hostParts.slice(-2).join(".")}`, // النطاق الرئيسي مثل .example.com
+      "",
+    ];
 
-    cookies.forEach((cookie) => {
-      const eqPos = cookie.indexOf("=");
-      const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
-
-      // حذف جميع الإصدارات الممكنة للكوكي
-      [
-        `; Path=/; Domain=${mainDomain}`,
-        `; Path=/; Domain=.${mainDomain}`,
-        `; Path=/`,
-      ].forEach((attrs) => {
-        document.cookie = `${name}=; Expires=Thu, 01 Jan 1970 00:00:01 GMT${attrs}`;
-      });
+    domains.forEach((domain) => {
+      document.cookie = `authToken=; Path=/; Domain=${domain}; Expires=Thu, 01 Jan 1970 00:00:00 GMT;`;
+      document.cookie = `refreshToken=; Path=/; Domain=${domain}; Expires=Thu, 01 Jan 1970 00:00:00 GMT;`;
     });
-  };
+  }, []);
 
   const logout = useCallback(async () => {
     try {
       setIsLoading(true);
 
-      // إزالة بيانات التخزين المحلي
-      localStorage.clear();
-
+      clearToken();
       deleteAllCookies();
 
       // إعادة تعيين حالة المستخدم
-      if (userContext) {
-        userContext.setUser(null);
-        userContext.setUserProfile(null);
-      }
+      setUser?.(null);
+      setUserProfile?.(null);
+
+      toast({
+        title: "تم تسجيل الخروج بنجاح",
+        description: "نراك قريباً!",
+      });
 
       // إعادة التوجيه
-      window.location.href = `/sign-in?t=${Date.now()}`;
-
-      window.setTimeout(() => {
-        toast({
-          title: "تم تسجيل الخروج بنجاح",
-          description: "نراك قريباً!",
-        });
-      }, 500);
+      setTimeout(() => {
+        window.location.href = `/sign-in?t=${Date.now()}`;
+      }, 1000);
     } catch (error) {
       toast({
         variant: "destructive",
@@ -61,7 +56,7 @@ export const useLogout = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [toast, userContext]);
+  }, [clearToken, deleteAllCookies, setUser, setUserProfile, toast]);
 
   return { isLoading, logout };
 };

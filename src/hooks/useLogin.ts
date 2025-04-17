@@ -1,12 +1,14 @@
 import { useState, useCallback } from "react";
 import { loginSchema } from "@/utils/validation";
 import { login } from "@/api/auth";
-import { setCookie } from "nookies";
 import { useToast } from "./use-toast";
 import { ValidationError } from "yup";
+import { useRouter } from "next/navigation";
+import { useAuthStore } from "@/store/authStore";
 
 export const useLogin = () => {
   const { toast } = useToast();
+  const router = useRouter();
 
   const [formState, setFormState] = useState({
     email: "",
@@ -15,7 +17,7 @@ export const useLogin = () => {
     termsAccepted: false,
     isLoading: false,
   });
-  
+
   const handleInputChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const { name, value, type, checked } = e.target;
@@ -41,37 +43,13 @@ export const useLogin = () => {
 
       try {
         await loginSchema.validate(formState, { abortEarly: false });
+        await login(formState.email, formState.password);
 
-        const { access_token, refresh_token } = await login(
-          formState.email,
-          formState.password
-        );
-
-        if (access_token) {
-          // Secure token storage
-          localStorage.setItem("authToken", access_token);
-          localStorage.setItem("refreshToken", refresh_token);
-
-          setCookie(null, "authToken", access_token, {
-            maxAge: 15 * 60 * 1000,
-            path: "/",
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "strict",
-          });
-
-          setCookie(null, "authToken", refresh_token, {
-            maxAge: 15 * 60 * 1000,
-            path: "/",
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "strict",
-          });
-
-          toast({
-            title: "تم تسجيل الدخول بنجاح",
-            description: "جاري تحويلك إلى لوحة التحكم...",
-          });
-          window.location.href = "/user";
-        }
+        toast({
+          title: "تم تسجيل الدخول بنجاح",
+          description: "جاري تحويلك إلى لوحة التحكم...",
+        });
+        router.push("/user");
       } catch (error: any) {
         let errorMessage = "فشل عملية تسجيل الدخول";
         // معالجة أخطاء التحقق من Yup
@@ -82,7 +60,7 @@ export const useLogin = () => {
         else if (error.message) {
           errorMessage = error.message;
         }
-        
+
         toast({
           variant: "destructive",
           title: "خطأ في التسجيل",
@@ -92,7 +70,7 @@ export const useLogin = () => {
         setFormState((prev) => ({ ...prev, isLoading: false }));
       }
     },
-    [formState, toast]
+    [formState, toast, router]
   );
 
   return {

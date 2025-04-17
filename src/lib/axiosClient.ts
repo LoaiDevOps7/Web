@@ -7,73 +7,65 @@ const axiosClient = axios.create({
   withCredentials: true,
 });
 
-// متغيرات التحكم في التجديد
-let isRefreshing = false;
-let refreshPromise: Promise<any> | null = null;
+const authState = {
+  isRefreshing: false,
+  refreshPromise: null as Promise<any> | null,
+};
 
-axiosClient.interceptors.request.use((config) => {
-  if (config.url !== "/auth/refresh-token") {
+axiosClient.interceptors.request.use(
+  (config) => {
     const token = useAuthStore.getState().token;
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-  }
-  return config;
-});
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
 axiosClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+    const status = error.response?.status;
 
-    // تجاهل جميع طلبات /auth/*
-    if (originalRequest.url?.includes("/auth/")) {
-      return Promise.reject(error);
-    }
-
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      if (isRefreshing && refreshPromise) {
-        // إرجاع نفس الـ promise للطلبات المتزامنة
-        return refreshPromise.then(() => {
-          originalRequest.headers.Authorization = `Bearer ${
-            useAuthStore.getState().token
-          }`;
-          return axiosClient(originalRequest);
-        });
-      }
-
+    // معالجة أخطاء 401 Unauthorized
+    if (status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
-      isRefreshing = true;
 
       try {
-        // إنشاء promise واحدة فقط
-        refreshPromise = axiosClient.post("/auth/refresh-token");
+        if (!authState.isRefreshing) {
+          authState.isRefreshing = true;
+          authState.refreshPromise = axiosClient.post("/auth/refresh-token");
+        }
 
-        const response = await refreshPromise;
-        const newAccessToken = response.data.access_token;
+        const { data } = await authState.refreshPromise;
+        const newToken = data.access_token;
 
         // تحديث التوكن في المتجر والكوكيز
-        setCookie(null, "authToken", newAccessToken, {
-          maxAge: 900000,
-          secure: true,
-          sameSite: "none",
-        });
-        useAuthStore.getState().setToken(newAccessToken);
+        useAuthStore.getState().setToken(newToken);
+        originalRequest.headers.Authorization = `Bearer ${newToken}`;
 
-        // إعادة الطلب الأصلي
-        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+        // إعادة الطلب الأصلي بعد التحديث
         return axiosClient(originalRequest);
       } catch (refreshError) {
-        // إلغاء التوكن دون إعادة توجيه
+        // معالجة فشل تجديد التوكن
         destroyCookie(null, "authToken");
+        destroyCookie(null, "refreshToken");
         useAuthStore.getState().clearToken();
-        return Promise.reject(error);
+
+        // إعادة التوجيه لصفحة تسجيل الدخول
+        if (typeof window !== "undefined") {
+          window.location.href = "/sign-in";
+        }
+        return Promise.reject(refreshError);
       } finally {
-        isRefreshing = false;
-        refreshPromise = null;
+        authState.isRefreshing = false;
+        authState.refreshPromise = null;
       }
     }
 
+    // معالجة أخطاء أخرى
     return Promise.reject(error);
   }
 );
